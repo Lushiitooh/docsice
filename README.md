@@ -51,7 +51,7 @@ docsice/
 
 ---
 
-## PASO 4 — Activar Storage
+## PASO 4 — Activar Storage (ya no corre. se ocupa cloudinary)
 
 1. Firebase Console → **Storage** → "Comenzar"
 2. Acepta las reglas por defecto
