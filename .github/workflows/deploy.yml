@@ -1,0 +1,55 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - run: npm install
+
+      - name: Build con variables de entorno
+        run: npm run build
+        env:
+          VITE_API_KEY:                  ${{ secrets.VITE_API_KEY }}
+          VITE_AUTH_DOMAIN:              ${{ secrets.VITE_AUTH_DOMAIN }}
+          VITE_PROJECT_ID:               ${{ secrets.VITE_PROJECT_ID }}
+          VITE_STORAGE_BUCKET:           ${{ secrets.VITE_STORAGE_BUCKET }}
+          VITE_MESSAGING_SENDER_ID:      ${{ secrets.VITE_MESSAGING_SENDER_ID }}
+          VITE_APP_ID:                   ${{ secrets.VITE_APP_ID }}
+          VITE_CLOUDINARY_CLOUD_NAME:    ${{ secrets.VITE_CLOUDINARY_CLOUD_NAME }}
+          VITE_CLOUDINARY_UPLOAD_PRESET: ${{ secrets.VITE_CLOUDINARY_UPLOAD_PRESET }}
+
+      - name: Deploy
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dist
+```
+
+Con esto cada vez que hagas `git push` a la rama `main`, GitHub construye y publica la app automáticamente con los secrets inyectados. No necesitas correr `npm run deploy` manualmente.
+
+---
+
+## Resumen del flujo completo
+```
+Tú trabajas en local
+  → npm run dev  (lee .env local)
+  → git add . && git commit && git push
+
+GitHub Actions se activa
+  → lee los Secrets
+  → construye la app con npm run build
+  → publica en gh-pages automáticamente
+
+Usuario final entra a tu GitHub Pages
+  → ve la app con las credenciales ya inyectadas
+  → nunca ve las claves en el código fuente

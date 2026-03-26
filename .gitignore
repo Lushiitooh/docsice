@@ -1,0 +1,10 @@
+# Dependencias
+node_modules/
+
+# Build (se genera con npm run build)
+dist/
+
+# Variables de entorno — NUNCA subir esto
+.env
+.env.local
+.env.production
