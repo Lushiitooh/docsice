@@ -33,23 +33,3 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./dist
-```
-
-Con esto cada vez que hagas `git push` a la rama `main`, GitHub construye y publica la app automáticamente con los secrets inyectados. No necesitas correr `npm run deploy` manualmente.
-
----
-
-## Resumen del flujo completo
-```
-Tú trabajas en local
-  → npm run dev  (lee .env local)
-  → git add . && git commit && git push
-
-GitHub Actions se activa
-  → lee los Secrets
-  → construye la app con npm run build
-  → publica en gh-pages automáticamente
-
-Usuario final entra a tu GitHub Pages
-  → ve la app con las credenciales ya inyectadas
-  → nunca ve las claves en el código fuente
