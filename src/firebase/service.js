@@ -266,3 +266,75 @@ export const seedInicial = async () => {
 
   console.log('✅ Seed completado: 4 contratos + 30 doc_tipos × 4 = 120 registros')
 }
+
+// ─── EDITAR / DESVINCULAR TRABAJADORES ───────────────────────────────────────
+export const editarTrabajador = async (trabajadorId, data) => {
+  await updateDoc(doc(db, 'trabajadores', trabajadorId), {
+    ...data,
+    actualizadoEn: serverTimestamp(),
+  })
+}
+
+export const desvincularTrabajador = async (trabajadorId) => {
+  await updateDoc(doc(db, 'trabajadores', trabajadorId), {
+    activo: false,
+    desvinculado: true,
+    actualizadoEn: serverTimestamp(),
+  })
+}
+
+export const getTrabajadoresDesvinculados = async (contratoId) => {
+  const q = query(
+    collection(db, 'trabajadores'),
+    where('contratoId', '==', contratoId),
+    where('desvinculado', '==', true)
+  )
+  const snap = await getDocs(q)
+  return snap.docs.map(d => ({ id: d.id, ...d.data() }))
+}
+
+// ─── DOC TIPOS INDIVIDUALES POR TRABAJADOR ────────────────────────────────────
+export const addDocTipoIndividual = async (contratoId, trabajadorId, nombre, tipo) => {
+  return addDoc(collection(db, 'doc_tipos_worker'), {
+    contratoId,
+    trabajadorId,
+    nombre,
+    tipo,
+    es_individual: true,
+    activo: true,
+    creadoEn: serverTimestamp(),
+  })
+}
+
+export const getDocTiposIndividuales = async (trabajadorId) => {
+  const q = query(
+    collection(db, 'doc_tipos_worker'),
+    where('trabajadorId', '==', trabajadorId),
+    where('activo', '==', true)
+  )
+  const snap = await getDocs(q)
+  return snap.docs.map(d => ({ id: d.id, ...d.data() }))
+}
+
+export const toggleDocTipoIndividual = async (docTipoId, activo) => {
+  await updateDoc(doc(db, 'doc_tipos_worker', docTipoId), { activo })
+}
+
+// ─── GESTIÓN DE CONTRATOS ─────────────────────────────────────────────────────
+export const addContrato = async (data) => {
+  return addDoc(collection(db, 'contratos'), {
+    ...data,
+    creadoEn: serverTimestamp(),
+  })
+}
+
+export const editarContrato = async (id, data) => {
+  await updateDoc(doc(db, 'contratos', id), {
+    ...data,
+    actualizadoEn: serverTimestamp(),
+  })
+}
+
+export const eliminarContrato = async (id) => {
+  await deleteDoc(doc(db, 'contratos', id))
+}

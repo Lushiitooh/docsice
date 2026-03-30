@@ -5,7 +5,10 @@ import {
   getContratos, getDocTipos, getTrabajadores, getDocsCargados,
   getDocsCargadosPorContrato, subirDocumento, eliminarDocumento,
   addDocTipo, toggleDocTipo, addTrabajador, desactivarTrabajador,
-  importarTrabajadoresCSV, calcularCumplimiento, seedInicial
+  importarTrabajadoresCSV, calcularCumplimiento, seedInicial,
+  editarTrabajador, desvincularTrabajador, getTrabajadoresDesvinculados,
+  addDocTipoIndividual, getDocTiposIndividuales, toggleDocTipoIndividual,
+  addContrato, editarContrato, eliminarContrato,
 } from './firebase/service'
 
 const C = {
@@ -161,6 +164,7 @@ const Sidebar = ({ view, contratoActivo, contratos, onNav, onLogout, isMobile, i
   const items = [
     { id:'dashboard', icon:'📊', label:'Dashboard' },
     { id:'alertas',   icon:'🔔', label:'Alertas' },
+    { id:'contratos', icon:'📋', label:'Contratos' },
   ]
   const go = (v, id) => { onNav(v, id); if (isMobile) onClose() }
 
@@ -340,13 +344,18 @@ const ContratoView = ({ contrato, onSelectTrabajador, isMobile }) => {
   const [ordenar, setOrdenar] = useState('nombre')
   const [nuevoTrab, setNuevoTrab] = useState({ rut:'', nombres:'', apellidos:'', cargo:'' })
   const [csvText, setCsvText] = useState('')
+  const [modalEditarTrab, setModalEditarTrab] = useState(false)
+  const [trabEditar, setTrabEditar] = useState({ id:'', rut:'', nombres:'', apellidos:'', cargo:'' })
+  const [desvinculados, setDesvinculados] = useState([])
+  const [mostrarDesvinculados, setMostrarDesvinculados] = useState(false)
 
   const cargar = useCallback(async () => {
     setLoading(true)
-    const [t, dt, dc] = await Promise.all([
-      getTrabajadores(contrato.id), getDocTipos(contrato.id), getDocsCargadosPorContrato(contrato.id),
+    const [t, dt, dc, desv] = await Promise.all([
+      getTrabajadores(contrato.id), getDocTipos(contrato.id),
+      getDocsCargadosPorContrato(contrato.id), getTrabajadoresDesvinculados(contrato.id),
     ])
-    setTrabajadores(t); setDocTipos(dt); setDocsCargados(dc); setLoading(false)
+    setTrabajadores(t); setDocTipos(dt); setDocsCargados(dc); setDesvinculados(desv); setLoading(false)
   }, [contrato.id])
 
   useEffect(() => { cargar() }, [cargar])
@@ -369,6 +378,33 @@ const ContratoView = ({ contrato, onSelectTrabajador, isMobile }) => {
     const count = await importarTrabajadoresCSV(contrato.id, csvText)
     alert(`✅ ${count} trabajadores importados`)
     setModalImport(false); setCsvText(''); cargar()
+  }
+
+  const abrirEditarTrab = (t, e) => {
+    e.stopPropagation()
+    setTrabEditar({ id:t.id, rut:t.rut, nombres:t.nombres, apellidos:t.apellidos, cargo:t.cargo })
+    setModalEditarTrab(true)
+  }
+
+  const guardarEdicionTrab = async () => {
+    if (!trabEditar.rut || !trabEditar.nombres) return
+    await editarTrabajador(trabEditar.id, {
+      rut: trabEditar.rut, nombres: trabEditar.nombres,
+      apellidos: trabEditar.apellidos, cargo: trabEditar.cargo,
+    })
+    setModalEditarTrab(false); cargar()
+  }
+
+  const desvincularHandler = async (t, e) => {
+    e.stopPropagation()
+    if (!confirm(`¿Desvincular a ${t.nombres} ${t.apellidos}?\nPasará al apartado de desvinculados.`)) return
+    await desvincularTrabajador(t.id); cargar()
+  }
+
+  const eliminarTrabHandler = async (t, e) => {
+    e.stopPropagation()
+    if (!confirm(`¿Eliminar definitivamente a ${t.nombres} ${t.apellidos}?`)) return
+    await desactivarTrabajador(t.id); cargar()
   }
 
   const conStats = trabajadores.map(t => {
@@ -457,10 +493,10 @@ const ContratoView = ({ contrato, onSelectTrabajador, isMobile }) => {
             </div>
           )}
           {filtrados.map(t => (
-            <div key={t.id} onClick={() => onSelectTrabajador(t)}
-              style={{ background:'#fff', borderRadius:12, padding:14, cursor:'pointer',
-                border:`1px solid ${C.border}` }}>
-              <div style={{ display:'flex', justifyContent:'space-between', marginBottom:8 }}>
+            <div key={t.id} style={{ background:'#fff', borderRadius:12, padding:14,
+              border:`1px solid ${C.border}` }}>
+              <div style={{ display:'flex', justifyContent:'space-between', marginBottom:8 }}
+                onClick={() => onSelectTrabajador(t)} style2={{ cursor:'pointer' }}>
                 <div>
                   <div style={{ fontSize:14, fontWeight:700, color:C.text }}>
                     {t.nombres} {t.apellidos}
@@ -478,6 +514,14 @@ const ContratoView = ({ contrato, onSelectTrabajador, isMobile }) => {
               </div>
               <ProgressBar pct={t.pct} />
               <div style={{ fontSize:11, color:C.textMuted, marginTop:4 }}>{t.ok}/{t.total} docs</div>
+              <div style={{ display:'flex', gap:6, marginTop:8, paddingTop:8,
+                borderTop:`1px solid ${C.border}` }}>
+                <Btn size="sm" variant="ghost" style={{ flex:1 }}
+                  onClick={() => onSelectTrabajador(t)}>Ver →</Btn>
+                <Btn size="sm" variant="ghost" onClick={e=>abrirEditarTrab(t,e)}>✏️</Btn>
+                <Btn size="sm" variant="ghost" onClick={e=>desvincularHandler(t,e)}>🔗</Btn>
+                <Btn size="sm" variant="danger" onClick={e=>eliminarTrabHandler(t,e)}>🗑</Btn>
+              </div>
             </div>
           ))}
         </div>
@@ -520,7 +564,12 @@ const ContratoView = ({ contrato, onSelectTrabajador, isMobile }) => {
                         : <span style={{ color:C.green, fontSize:12 }}>✓</span>}
                     </td>
                     <td style={{ padding:'12px 14px' }}>
-                      <Btn size="sm" variant="ghost" onClick={e=>{e.stopPropagation();onSelectTrabajador(t)}}>Ver →</Btn>
+                      <div style={{ display:'flex', gap:4 }}>
+                        <Btn size="sm" variant="ghost" onClick={e=>{e.stopPropagation();onSelectTrabajador(t)}}>Ver →</Btn>
+                        <Btn size="sm" variant="ghost" onClick={e=>abrirEditarTrab(t,e)}>✏️</Btn>
+                        <Btn size="sm" variant="ghost" onClick={e=>desvincularHandler(t,e)}>🔗</Btn>
+                        <Btn size="sm" variant="danger" onClick={e=>eliminarTrabHandler(t,e)}>🗑</Btn>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -582,6 +631,70 @@ const ContratoView = ({ contrato, onSelectTrabajador, isMobile }) => {
           </div>
         </Modal>
       )}
+
+      {modalEditarTrab && (
+        <Modal title="Editar trabajador" onClose={() => setModalEditarTrab(false)}>
+          <Input label="RUT" value={trabEditar.rut}
+            onChange={e=>setTrabEditar(p=>({...p,rut:e.target.value}))} />
+          <Input label="Nombres" value={trabEditar.nombres}
+            onChange={e=>setTrabEditar(p=>({...p,nombres:e.target.value}))} />
+          <Input label="Apellidos" value={trabEditar.apellidos}
+            onChange={e=>setTrabEditar(p=>({...p,apellidos:e.target.value}))} />
+          <Input label="Cargo" value={trabEditar.cargo}
+            onChange={e=>setTrabEditar(p=>({...p,cargo:e.target.value}))} />
+          <div style={{ display:'flex', gap:8, justifyContent:'flex-end' }}>
+            <Btn variant="ghost" onClick={() => setModalEditarTrab(false)}>Cancelar</Btn>
+            <Btn onClick={guardarEdicionTrab}>Guardar</Btn>
+          </div>
+        </Modal>
+      )}
+
+      {desvinculados.length > 0 && (
+        <div style={{ marginTop:16 }}>
+          <div onClick={() => setMostrarDesvinculados(!mostrarDesvinculados)}
+            style={{ cursor:'pointer', display:'flex', alignItems:'center', gap:8,
+              marginBottom:mostrarDesvinculados?10:0, userSelect:'none' }}>
+            <span style={{ fontSize:13, fontWeight:700, color:C.textMuted }}>
+              🔗 Desvinculados ({desvinculados.length})
+            </span>
+            <span style={{ color:C.textMuted, fontSize:11 }}>{mostrarDesvinculados?'▲':'▼'}</span>
+          </div>
+          {mostrarDesvinculados && (
+            <div style={{ background:'#fff', borderRadius:12, overflow:'hidden',
+              border:`1px solid ${C.border}`, opacity:0.75 }}>
+              {isMobile ? (
+                desvinculados.map(t => (
+                  <div key={t.id} style={{ padding:'10px 14px',
+                    borderBottom:`1px solid ${C.border}` }}>
+                    <div style={{ fontSize:13, fontWeight:600, color:C.textMuted }}>
+                      {t.nombres} {t.apellidos}
+                    </div>
+                    <div style={{ fontSize:12, color:C.textMuted }}>{t.cargo} · {t.rut}</div>
+                  </div>
+                ))
+              ) : (
+                <table style={{ width:'100%', borderCollapse:'collapse' }}>
+                  <tbody>
+                    {desvinculados.map(t => (
+                      <tr key={t.id} style={{ borderBottom:`1px solid ${C.border}` }}>
+                        <td style={{ padding:'10px 14px', fontSize:13, color:C.textMuted }}>{t.rut}</td>
+                        <td style={{ padding:'10px 14px', fontSize:13, color:C.textMuted }}>
+                          {t.nombres} {t.apellidos}
+                        </td>
+                        <td style={{ padding:'10px 14px', fontSize:13, color:C.textMuted }}>{t.cargo}</td>
+                        <td style={{ padding:'10px 14px' }}>
+                          <span style={{ background:'#f1f5f9', color:C.textMuted, fontSize:11,
+                            padding:'2px 8px', borderRadius:99, fontWeight:600 }}>Desvinculado</span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }
@@ -595,15 +708,22 @@ const TrabajadorView = ({ trabajador, contrato, onBack, isMobile }) => {
   const [archivo, setArchivo] = useState(null)
   const [fechaVenc, setFechaVenc] = useState('')
   const [subiendo, setSubiendo] = useState(false)
+  const [docTiposIndiv, setDocTiposIndiv] = useState([])
+  const [modalDocIndiv, setModalDocIndiv] = useState(false)
+  const [nuevoDocIndivNombre, setNuevoDocIndivNombre] = useState('')
+  const [nuevoDocIndivTipo, setNuevoDocIndivTipo] = useState('con_vencimiento')
 
   const cargar = useCallback(async () => {
-    const [dt, dc] = await Promise.all([getDocTipos(contrato.id), getDocsCargados(trabajador.id)])
-    setDocTipos(dt); setDocsCargados(dc); setLoading(false)
+    const [dt, dtIndiv, dc] = await Promise.all([
+      getDocTipos(contrato.id), getDocTiposIndividuales(trabajador.id), getDocsCargados(trabajador.id)
+    ])
+    setDocTipos(dt); setDocTiposIndiv(dtIndiv); setDocsCargados(dc); setLoading(false)
   }, [trabajador.id, contrato.id])
 
   useEffect(() => { cargar() }, [cargar])
 
-  const { pct, ok, total } = calcularCumplimiento(docTipos, docsCargados)
+  const todosDocTipos = [...docTipos, ...docTiposIndiv]
+  const { pct, ok, total } = calcularCumplimiento(todosDocTipos, docsCargados)
 
   const subirDoc = async () => {
     if (!archivo || !modalDoc) return
@@ -618,10 +738,21 @@ const TrabajadorView = ({ trabajador, contrato, onBack, isMobile }) => {
     await eliminarDocumento(docId); cargar()
   }
 
+  const crearDocIndividual = async () => {
+    if (!nuevoDocIndivNombre.trim()) return
+    await addDocTipoIndividual(contrato.id, trabajador.id, nuevoDocIndivNombre.trim(), nuevoDocIndivTipo)
+    setNuevoDocIndivNombre(''); setModalDocIndiv(false); cargar()
+  }
+
+  const quitarDocIndividual = async (tipo) => {
+    if (!confirm(`¿Quitar el documento "${tipo.nombre}" de este trabajador?`)) return
+    await toggleDocTipoIndividual(tipo.id, false); cargar()
+  }
+
   if (loading) return <div style={{ padding:40, color:C.textMuted, textAlign:'center' }}>Cargando...</div>
 
-  const permanentes = docTipos.filter(d => d.tipo==='permanente')
-  const conVenc = docTipos.filter(d => d.tipo==='con_vencimiento')
+  const permanentes = todosDocTipos.filter(d => d.tipo==='permanente')
+  const conVenc = todosDocTipos.filter(d => d.tipo==='con_vencimiento')
 
   const DocCard = ({ tipo }) => {
     const cargado = docsCargados.find(d => d.docTipoId===tipo.id)
@@ -631,10 +762,12 @@ const TrabajadorView = ({ trabajador, contrato, onBack, isMobile }) => {
         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:8 }}>
           <div style={{ flex:1, marginRight:8 }}>
             <div style={{ fontSize:13, fontWeight:600, color:C.text }}>{tipo.nombre}</div>
-            {tipo.es_adicional && (
-              <span style={{ background:'#dbeafe', color:'#1d4ed8', fontSize:10,
-                padding:'1px 5px', borderRadius:99, fontWeight:700 }}>ADICIONAL</span>
-            )}
+            {tipo.es_individual
+              ? <span style={{ background:'#dcfce7', color:'#166534', fontSize:10,
+                  padding:'1px 5px', borderRadius:99, fontWeight:700 }}>INDIVIDUAL</span>
+              : tipo.es_adicional && <span style={{ background:'#dbeafe', color:'#1d4ed8', fontSize:10,
+                  padding:'1px 5px', borderRadius:99, fontWeight:700 }}>ADICIONAL</span>
+            }
             {cargado?.fechaVenc && (
               <div style={{ fontSize:11, color:C.textMuted, marginTop:2 }}>
                 Vence: {new Date(cargado.fechaVenc).toLocaleDateString('es-CL')}
@@ -647,6 +780,7 @@ const TrabajadorView = ({ trabajador, contrato, onBack, isMobile }) => {
           {cargado?.url && <a href={cargado.url} target="_blank" rel="noreferrer"><Btn size="sm" variant="ghost">👁 Ver</Btn></a>}
           <Btn size="sm" variant="ghost" onClick={() => setModalDoc(tipo)}>{cargado?'🔄 Reemplazar':'📎 Subir'}</Btn>
           {cargado && <Btn size="sm" variant="danger" onClick={() => eliminar(cargado.id)}>🗑</Btn>}
+          {tipo.es_individual && <Btn size="sm" variant="ghost" onClick={() => quitarDocIndividual(tipo)}>× Quitar</Btn>}
         </div>
       </div>
     )
@@ -659,8 +793,12 @@ const TrabajadorView = ({ trabajador, contrato, onBack, isMobile }) => {
       <tr style={{ borderBottom:`1px solid ${C.border}` }}>
         <td style={{ padding:'10px 14px', fontSize:13, color:C.text, fontWeight:500 }}>
           {tipo.nombre}
-          {tipo.es_adicional && <span style={{ marginLeft:6, background:'#dbeafe', color:'#1d4ed8',
-            fontSize:10, padding:'1px 5px', borderRadius:99, fontWeight:700 }}>ADICIONAL</span>}
+          {tipo.es_individual
+            ? <span style={{ marginLeft:6, background:'#dcfce7', color:'#166534',
+                fontSize:10, padding:'1px 5px', borderRadius:99, fontWeight:700 }}>INDIVIDUAL</span>
+            : tipo.es_adicional && <span style={{ marginLeft:6, background:'#dbeafe', color:'#1d4ed8',
+                fontSize:10, padding:'1px 5px', borderRadius:99, fontWeight:700 }}>ADICIONAL</span>
+          }
         </td>
         <td style={{ padding:'10px 14px' }}><Badge status={status} /></td>
         <td style={{ padding:'10px 14px', fontSize:12, color:C.textMuted, whiteSpace:'nowrap' }}>
@@ -671,6 +809,7 @@ const TrabajadorView = ({ trabajador, contrato, onBack, isMobile }) => {
             {cargado?.url && <a href={cargado.url} target="_blank" rel="noreferrer"><Btn size="sm" variant="ghost">👁</Btn></a>}
             <Btn size="sm" variant="ghost" onClick={() => setModalDoc(tipo)}>{cargado?'🔄':'📎'}</Btn>
             {cargado && <Btn size="sm" variant="danger" onClick={() => eliminar(cargado.id)}>🗑</Btn>}
+            {tipo.es_individual && <Btn size="sm" variant="ghost" onClick={() => quitarDocIndividual(tipo)}>×</Btn>}
           </div>
         </td>
       </tr>
@@ -742,6 +881,10 @@ const TrabajadorView = ({ trabajador, contrato, onBack, isMobile }) => {
 
       {!isMobile && <div style={{ marginBottom:16 }}><ProgressBar pct={pct} /></div>}
 
+      <div style={{ display:'flex', justifyContent:'flex-end', marginBottom:10 }}>
+        <Btn size="sm" variant="ghost" onClick={() => setModalDocIndiv(true)}>+ Doc. individual</Btn>
+      </div>
+
       <Seccion titulo="Documentos permanentes" items={permanentes} />
       <Seccion titulo="Con vencimiento" items={conVenc} />
 
@@ -759,6 +902,31 @@ const TrabajadorView = ({ trabajador, contrato, onBack, isMobile }) => {
           <div style={{ display:'flex', gap:8, justifyContent:'flex-end', marginTop:8 }}>
             <Btn variant="ghost" onClick={() => { setModalDoc(null); setArchivo(null); setFechaVenc('') }}>Cancelar</Btn>
             <Btn onClick={subirDoc} disabled={!archivo||subiendo}>{subiendo?'Subiendo...':'📤 Subir'}</Btn>
+          </div>
+        </Modal>
+      )}
+
+      {modalDocIndiv && (
+        <Modal title="Agregar documento individual" onClose={() => { setModalDocIndiv(false); setNuevoDocIndivNombre('') }}>
+          <p style={{ fontSize:13, color:C.textMuted, marginTop:0 }}>
+            Solo se asignará a <strong>{trabajador.nombres} {trabajador.apellidos}</strong>.
+          </p>
+          <Input label="Nombre del documento" value={nuevoDocIndivNombre}
+            onChange={e=>setNuevoDocIndivNombre(e.target.value)}
+            placeholder="Ej: Reinducción seguridad, Curso manejo defensivo..." />
+          <div style={{ marginBottom:16 }}>
+            <label style={{ display:'block', fontSize:12, fontWeight:600, color:C.textMuted,
+              marginBottom:4, textTransform:'uppercase' }}>Tipo</label>
+            <select value={nuevoDocIndivTipo} onChange={e=>setNuevoDocIndivTipo(e.target.value)}
+              style={{ width:'100%', padding:'10px 12px', border:`1px solid ${C.border}`,
+                borderRadius:8, fontSize:16, fontFamily:'inherit', background:'#fff' }}>
+              <option value="con_vencimiento">Con vencimiento</option>
+              <option value="permanente">Permanente</option>
+            </select>
+          </div>
+          <div style={{ display:'flex', gap:8, justifyContent:'flex-end' }}>
+            <Btn variant="ghost" onClick={() => { setModalDocIndiv(false); setNuevoDocIndivNombre('') }}>Cancelar</Btn>
+            <Btn onClick={crearDocIndividual}>Agregar</Btn>
           </div>
         </Modal>
       )}
@@ -832,6 +1000,124 @@ const AlertasView = ({ statsMap, isMobile }) => {
   )
 }
 
+// ─── GESTIÓN DE CONTRATOS ─────────────────────────────────────────────────────
+const COLORES_CONTRATO = ['#3b82f6','#8b5cf6','#f59e0b','#10b981','#ef4444','#f97316','#06b6d4','#ec4899']
+
+const ColorPicker = ({ value, onChange }) => (
+  <div style={{ marginBottom:16 }}>
+    <label style={{ display:'block', fontSize:12, fontWeight:600, color:C.textMuted,
+      marginBottom:8, textTransform:'uppercase' }}>Color</label>
+    <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
+      {COLORES_CONTRATO.map(col => (
+        <div key={col} onClick={() => onChange(col)}
+          style={{ width:28, height:28, borderRadius:'50%', background:col, cursor:'pointer',
+            border:`3px solid ${value===col?C.text:'transparent'}`,
+            boxSizing:'border-box', transition:'border-color 0.15s' }} />
+      ))}
+    </div>
+  </div>
+)
+
+const GestionContratosView = ({ contratos, onContratosChange, isMobile }) => {
+  const [modalNuevo, setModalNuevo] = useState(false)
+  const [modalEditar, setModalEditar] = useState(false)
+  const [nuevoContrato, setNuevoContrato] = useState({ nombre:'', codigo:'', color:'#3b82f6' })
+  const [contratoEditar, setContratoEditar] = useState({ id:'', nombre:'', codigo:'', color:'#3b82f6' })
+
+  const crearContrato = async () => {
+    if (!nuevoContrato.nombre.trim() || !nuevoContrato.codigo.trim()) return
+    await addContrato({ nombre:nuevoContrato.nombre.trim(), codigo:nuevoContrato.codigo.trim(), color:nuevoContrato.color })
+    setNuevoContrato({ nombre:'', codigo:'', color:'#3b82f6' })
+    setModalNuevo(false); onContratosChange()
+  }
+
+  const guardarEdicion = async () => {
+    if (!contratoEditar.nombre.trim() || !contratoEditar.codigo.trim()) return
+    await editarContrato(contratoEditar.id, {
+      nombre: contratoEditar.nombre.trim(),
+      codigo: contratoEditar.codigo.trim(),
+      color:  contratoEditar.color,
+    })
+    setModalEditar(false); onContratosChange()
+  }
+
+  const eliminarContratoHandler = async (c) => {
+    if (!confirm(`¿Eliminar el contrato "${c.nombre}" (${c.id})?\n\nNota: Los trabajadores y documentos asociados NO se eliminarán de la base de datos.`)) return
+    await eliminarContrato(c.id); onContratosChange()
+  }
+
+  const abrirEditar = (c) => {
+    setContratoEditar({ id:c.id, nombre:c.nombre, codigo:c.codigo, color:c.color })
+    setModalEditar(true)
+  }
+
+  return (
+    <div style={{ padding:isMobile?12:28, overflowY:'auto', flex:1 }}>
+      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16 }}>
+        <h2 style={{ margin:0, fontSize:isMobile?17:20, fontWeight:800, color:C.text }}>Contratos</h2>
+        <Btn size="sm" onClick={() => setModalNuevo(true)}>+ Nuevo contrato</Btn>
+      </div>
+
+      <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+        {contratos.map(c => (
+          <div key={c.id} style={{ background:'#fff', borderRadius:12, padding:16,
+            border:`1px solid ${C.border}`, borderLeft:`5px solid ${c.color}` }}>
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center',
+              flexWrap:'wrap', gap:8 }}>
+              <div>
+                <div style={{ fontSize:12, fontWeight:700, color:c.color, marginBottom:2 }}>{c.id}</div>
+                <div style={{ fontSize:15, fontWeight:600, color:C.text }}>{c.nombre}</div>
+                <div style={{ fontSize:12, color:C.textMuted, marginTop:2 }}>Código: {c.codigo}</div>
+              </div>
+              <div style={{ display:'flex', gap:6 }}>
+                <Btn size="sm" variant="ghost" onClick={() => abrirEditar(c)}>✏️ Editar</Btn>
+                <Btn size="sm" variant="danger" onClick={() => eliminarContratoHandler(c)}>🗑 Eliminar</Btn>
+              </div>
+            </div>
+          </div>
+        ))}
+        {contratos.length === 0 && (
+          <div style={{ textAlign:'center', color:C.textMuted, padding:40, fontSize:13 }}>
+            Sin contratos. Crea uno con el botón de arriba.
+          </div>
+        )}
+      </div>
+
+      {modalNuevo && (
+        <Modal title="Nuevo contrato" onClose={() => setModalNuevo(false)}>
+          <Input label="Nombre del contrato" value={nuevoContrato.nombre}
+            onChange={e=>setNuevoContrato(p=>({...p,nombre:e.target.value}))}
+            placeholder="Ej: Mantenimiento sistema de peajes..." />
+          <Input label="Código" value={nuevoContrato.codigo}
+            onChange={e=>setNuevoContrato(p=>({...p,codigo:e.target.value}))}
+            placeholder="Ej: MN-001-2024-G" />
+          <ColorPicker value={nuevoContrato.color}
+            onChange={col=>setNuevoContrato(p=>({...p,color:col}))} />
+          <div style={{ display:'flex', gap:8, justifyContent:'flex-end' }}>
+            <Btn variant="ghost" onClick={() => setModalNuevo(false)}>Cancelar</Btn>
+            <Btn onClick={crearContrato}>Crear</Btn>
+          </div>
+        </Modal>
+      )}
+
+      {modalEditar && (
+        <Modal title="Editar contrato" onClose={() => setModalEditar(false)}>
+          <Input label="Nombre del contrato" value={contratoEditar.nombre}
+            onChange={e=>setContratoEditar(p=>({...p,nombre:e.target.value}))} />
+          <Input label="Código" value={contratoEditar.codigo}
+            onChange={e=>setContratoEditar(p=>({...p,codigo:e.target.value}))} />
+          <ColorPicker value={contratoEditar.color}
+            onChange={col=>setContratoEditar(p=>({...p,color:col}))} />
+          <div style={{ display:'flex', gap:8, justifyContent:'flex-end' }}>
+            <Btn variant="ghost" onClick={() => setModalEditar(false)}>Cancelar</Btn>
+            <Btn onClick={guardarEdicion}>Guardar</Btn>
+          </div>
+        </Modal>
+      )}
+    </div>
+  )
+}
+
 // ─── APP ROOT ─────────────────────────────────────────────────────────────────
 export default function App() {
   const [user, setUser] = useState(null)
@@ -851,10 +1137,14 @@ export default function App() {
 
   useEffect(() => {
     if (!user) return
-    getContratos().then(data => { setContratos(data); cargarStats(data) })
+    recargarContratos()
     window.seed = seedInicial
     console.log('💡 Tip: escribe seed() en la consola para hacer el setup inicial de Firestore')
   }, [user])
+
+  const recargarContratos = () => {
+    getContratos().then(data => { setContratos(data); cargarStats(data) })
+  }
 
   const cargarStats = async (contratos) => {
     const map = {}
@@ -931,6 +1221,7 @@ export default function App() {
       <main style={{ flex:1, display:'flex', flexDirection:'column', overflow:'hidden', minHeight:0 }}>
         {view==='dashboard' && <DashboardView contratos={contratos} statsMap={statsMap} onNav={handleNav} isMobile={isMobile} />}
         {view==='alertas'   && <AlertasView statsMap={statsMap} isMobile={isMobile} />}
+        {view==='contratos' && <GestionContratosView contratos={contratos} onContratosChange={recargarContratos} isMobile={isMobile} />}
         {view==='contrato' && contratoActivo && !trabajadorActivo && (
           <ContratoView contrato={contratoActivo} onSelectTrabajador={t=>setTrabajadorActivo(t)} isMobile={isMobile} />
         )}
