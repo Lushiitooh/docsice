@@ -1,9 +1,9 @@
 import {
-  collection, doc, getDocs, getDoc, addDoc, updateDoc, deleteDoc,
+  collection, doc, getDocs, addDoc, updateDoc, deleteDoc,
   query, where, orderBy, serverTimestamp, writeBatch
 } from 'firebase/firestore'
-import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage'
-import { db, storage } from './config'
+import { getFunctions, httpsCallable } from 'firebase/functions'
+import { db, app } from './config'
 import { CLOUDINARY_CLOUD_NAME, CLOUDINARY_UPLOAD_PRESET } from './config'
 
 // ─── CONTRATOS ───────────────────────────────────────────────────────────────
@@ -140,10 +140,24 @@ export const subirDocumento = async ({ trabajadorId, contratoId, docTipoId, arch
 }
 
 //─── ELIMINAR DOCUMENTO ───────────────────────────────────────────────────────
-// Nota: Cloudinary no permite eliminar desde el frontend con preset unsigned.
-// El archivo queda en Cloudinary pero se borra el registro de Firestore.
-// Si necesitas borrar el archivo físico, se hace desde el dashboard de Cloudinary.
-export const eliminarDocumento = async (docCargadoId) => {
+// Elimina el registro de Firestore Y el archivo físico de Cloudinary.
+// La eliminación física se delega a una Cloud Function que tiene acceso al API_SECRET.
+// Si la Cloud Function falla (ej: aún no desplegada), el registro Firestore igual se borra.
+export const eliminarDocumento = async (docCargadoId, publicId = null) => {
+  // 1. Intentar eliminar el archivo físico de Cloudinary vía Cloud Function
+  if (publicId) {
+    try {
+      const functions = getFunctions(app)
+      const eliminarDeCloudinary = httpsCallable(functions, 'eliminarDeCloudinary')
+      await eliminarDeCloudinary({ publicId })
+    } catch (err) {
+      // Si la función falla (no desplegada, error de red, etc.) continuamos igual.
+      // El registro Firestore se elimina de todas formas.
+      console.warn('⚠️ No se pudo eliminar el archivo de Cloudinary:', err.message)
+    }
+  }
+
+  // 2. Eliminar el registro de Firestore siempre
   await deleteDoc(doc(db, 'docs_cargados', docCargadoId))
 }
 
