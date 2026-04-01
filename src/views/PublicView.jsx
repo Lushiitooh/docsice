@@ -1,5 +1,7 @@
-import { useState, useEffect, useCallback } from 'react'
-import { C, STATUS_CONFIG, DOCS_RESTRINGIDOS_PUBLICO } from '../constants'
+import { useState, useEffect } from 'react'
+import { signInWithEmailAndPassword } from 'firebase/auth'
+import { auth } from '../firebase/config'
+import { C, DOCS_RESTRINGIDOS_PUBLICO } from '../constants'
 import { Badge, ProgressBar } from '../components/ui'
 import {
   getContratos, getTrabajadores, getDocTipos, getDocTiposIndividuales,
@@ -10,8 +12,78 @@ import {
 const esRestringido = (nombre) =>
   DOCS_RESTRINGIDOS_PUBLICO.some(r => r.toLowerCase() === nombre?.toLowerCase())
 
-// ─── BANNER DE SOLO LECTURA ───────────────────────────────────────────────────
-const BannerPublico = () => (
+// ─── MODAL DE LOGIN ───────────────────────────────────────────────────────────
+const LoginModal = ({ onClose }) => {
+  const [email, setEmail]     = useState('')
+  const [pass, setPass]       = useState('')
+  const [err, setErr]         = useState('')
+  const [loading, setLoading] = useState(false)
+
+  const handleLogin = async (e) => {
+    e.preventDefault(); setLoading(true); setErr('')
+    try {
+      await signInWithEmailAndPassword(auth, email, pass)
+      // Al autenticarse, App.jsx detecta el cambio y renderiza el panel admin.
+      // El modal se cierra automáticamente porque PublicView deja de renderizarse.
+    } catch {
+      setErr('Correo o contraseña incorrectos')
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.55)',
+      display:'flex', alignItems:'center', justifyContent:'center', zIndex:1000, padding:16 }}>
+      <div style={{ background:'#fff', borderRadius:16, padding:28, width:'100%', maxWidth:360,
+        boxShadow:'0 20px 60px rgba(0,0,0,0.25)' }}>
+        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:20 }}>
+          <div>
+            <div style={{ fontSize:16, fontWeight:800, color:C.text }}>Acceso prevencionistas</div>
+            <div style={{ fontSize:12, color:C.textMuted, marginTop:2 }}>Panel de administración DocSICE</div>
+          </div>
+          <button onClick={onClose}
+            style={{ background:'none', border:'none', cursor:'pointer',
+              fontSize:22, color:C.textMuted, lineHeight:1 }}>×</button>
+        </div>
+        <form onSubmit={handleLogin}>
+          <div style={{ marginBottom:14 }}>
+            <label style={{ display:'block', fontSize:11, fontWeight:700, color:C.textMuted,
+              marginBottom:4, textTransform:'uppercase', letterSpacing:'0.05em' }}>Correo</label>
+            <input type="email" value={email} onChange={e=>setEmail(e.target.value)}
+              placeholder="admin@sice.cl" required autoFocus
+              style={{ width:'100%', padding:'10px 12px', border:`1px solid ${C.border}`,
+                borderRadius:8, fontSize:15, fontFamily:'inherit', outline:'none',
+                boxSizing:'border-box', color:C.text }} />
+          </div>
+          <div style={{ marginBottom:16 }}>
+            <label style={{ display:'block', fontSize:11, fontWeight:700, color:C.textMuted,
+              marginBottom:4, textTransform:'uppercase', letterSpacing:'0.05em' }}>Contraseña</label>
+            <input type="password" value={pass} onChange={e=>setPass(e.target.value)}
+              placeholder="••••••••" required
+              style={{ width:'100%', padding:'10px 12px', border:`1px solid ${C.border}`,
+                borderRadius:8, fontSize:15, fontFamily:'inherit', outline:'none',
+                boxSizing:'border-box', color:C.text }} />
+          </div>
+          {err && (
+            <div style={{ background:'#fef2f2', border:`1px solid #fecaca`, borderRadius:8,
+              padding:'8px 12px', fontSize:13, color:'#991b1b', marginBottom:14 }}>
+              {err}
+            </div>
+          )}
+          <button type="submit" disabled={loading}
+            style={{ width:'100%', padding:12, background:C.blue, color:'#fff', border:'none',
+              borderRadius:8, fontSize:15, fontWeight:700, fontFamily:'inherit',
+              cursor:loading?'not-allowed':'pointer', opacity:loading?0.7:1 }}>
+            {loading ? 'Ingresando...' : 'Ingresar'}
+          </button>
+        </form>
+      </div>
+    </div>
+  )
+}
+
+// ─── BANNER ───────────────────────────────────────────────────────────────────
+const BannerPublico = ({ onLoginClick }) => (
   <div style={{ background:'#1e3a5f', padding:'10px 20px', display:'flex',
     alignItems:'center', justifyContent:'space-between', gap:12, flexShrink:0 }}>
     <div style={{ display:'flex', alignItems:'center', gap:10 }}>
@@ -21,10 +93,21 @@ const BannerPublico = () => (
         <span style={{ fontSize:12, color:'#94a3b8', marginLeft:8 }}>SICE Agencia Chile</span>
       </div>
     </div>
-    <span style={{ background:'rgba(255,255,255,0.1)', color:'#94a3b8', fontSize:11,
-      fontWeight:700, padding:'4px 10px', borderRadius:99, whiteSpace:'nowrap' }}>
-      👁 Solo lectura
-    </span>
+    <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+      <span style={{ background:'rgba(255,255,255,0.08)', color:'#94a3b8', fontSize:11,
+        fontWeight:700, padding:'4px 10px', borderRadius:99, whiteSpace:'nowrap' }}>
+        👁 Solo lectura
+      </span>
+      <button onClick={onLoginClick}
+        style={{ background:'rgba(255,255,255,0.12)', border:'1px solid rgba(255,255,255,0.2)',
+          color:'#fff', fontSize:12, fontWeight:600, padding:'5px 12px', borderRadius:8,
+          cursor:'pointer', fontFamily:'inherit', whiteSpace:'nowrap',
+          transition:'background 0.15s' }}
+        onMouseEnter={e=>e.currentTarget.style.background='rgba(255,255,255,0.2)'}
+        onMouseLeave={e=>e.currentTarget.style.background='rgba(255,255,255,0.12)'}>
+        🔐 Iniciar sesión
+      </button>
+    </div>
   </div>
 )
 
@@ -359,7 +442,7 @@ const DocumentosTrabajador = ({ trabajador, contrato, docTiposContrato, docsCarg
 }
 
 // ─── COMPONENTE RAÍZ DE VISTA PÚBLICA ────────────────────────────────────────
-export const PublicView = ({ isMobile }) => {
+export const PublicView = ({ isMobile, showLogin, onLoginClick, onLoginClose }) => {
   const [contratos, setContratos]         = useState([])
   const [statsMap, setStatsMap]           = useState({})
   const [loadingInicial, setLoadingInicial] = useState(true)
@@ -410,7 +493,7 @@ export const PublicView = ({ isMobile }) => {
 
   if (loadingInicial) return (
     <div style={{ display:'flex', flexDirection:'column', height:'100vh', fontFamily:"'Inter',system-ui,sans-serif" }}>
-      <BannerPublico />
+      <BannerPublico onLoginClick={onLoginClick} />
       <div style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center',
         fontSize:14, color:C.textMuted }}>Cargando datos...</div>
     </div>
@@ -441,7 +524,8 @@ export const PublicView = ({ isMobile }) => {
   return (
     <div style={{ display:'flex', flexDirection:'column', height:'100vh',
       fontFamily:"'Inter',system-ui,sans-serif", background:C.bg }}>
-      <BannerPublico />
+      <BannerPublico onLoginClick={onLoginClick} />
+      {showLogin && <LoginModal onClose={onLoginClose} />}
 
       <main style={{ flex:1, overflow:'hidden', display:'flex', flexDirection:'column' }}>
         {!contratoActivo && (
