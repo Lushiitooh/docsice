@@ -273,6 +273,7 @@ docs_cargados/{id}
 
 | Versión | Cambio |
 |---------|--------|
+| **Carga masiva + ZIP auditorías** (commit `2e89923`) | `📂 Carga masiva` en vista trabajador: guía de slugs → selección múltiple de archivos → auto-detección por nombre → cálculo de vencimiento (ACHS +2 años) → preview editable → subida en serie. `📦 Auditoría` en vista contrato: checkboxes por tipo de doc → ZIP organizado por trabajador → barra de progreso. |
 | **Responsivo móvil** (commit `3894a0a`) | CSS reset global en `index.html`. `Btn` con minHeight 36–44px. `Modal` bottom-sheet en pantallas <540px. `BannerPublico` compacto en móvil (oculta badge y subtítulo). `height:100dvh` en todos los contenedores raíz (fix Safari). |
 | Código interno de contrato | Campo `codigoInterno` (ej: AL10201) separado del ID de Firestore. Se ingresa al crear/editar. `codeOf(c)` lo muestra en toda la UI con fallback al ID para contratos legacy. |
 | Multi-tenant | Campo `uid` en todos los documentos. Cada prevencionista ve solo sus datos. Admin (`lasepulveda@sice.com`) ve todos. |
