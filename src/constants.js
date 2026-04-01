@@ -24,3 +24,8 @@ export const COLORES_CONTRATO = [
   '#3b82f6', '#8b5cf6', '#f59e0b', '#10b981',
   '#ef4444', '#f97316', '#06b6d4', '#ec4899',
 ]
+
+// ─── DOCUMENTOS RESTRINGIDOS EN VISTA PÚBLICA ─────────────────────────────────
+// Estos tipos de documento NUNCA se muestran a visitantes (técnicos, supervisores).
+// Solo los prevencionistas autenticados pueden verlos.
+export const DOCS_RESTRINGIDOS_PUBLICO = ['Contrato', 'Anexo Contrato']

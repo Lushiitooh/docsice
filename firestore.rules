@@ -1,9 +1,35 @@
 rules_version = '2';
-// Solo el admin autenticado puede leer/escribir todo
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    // ── REGLA GENERAL: autenticados pueden leer y escribir todo ──────────────
     match /{document=**} {
       allow read, write: if request.auth != null;
+    }
+
+    // ── LECTURA PÚBLICA (sin autenticación) ───────────────────────────────────
+    // Permite que técnicos, trabajadores y supervisores accedan con el link
+    // sin necesidad de cuenta. Solo lectura — jamás escritura.
+    // Los documentos sensibles (Contrato, Anexo Contrato) se filtran en el cliente.
+
+    match /contratos/{id} {
+      allow read: if true;
+    }
+
+    match /trabajadores/{id} {
+      allow read: if true;
+    }
+
+    match /doc_tipos/{id} {
+      allow read: if true;
+    }
+
+    match /doc_tipos_worker/{id} {
+      allow read: if true;
+    }
+
+    match /docs_cargados/{id} {
+      allow read: if true;
     }
   }
 }

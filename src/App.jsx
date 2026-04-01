@@ -10,8 +10,18 @@ import { AlertasView }          from './views/AlertasView'
 import { ContratoView }         from './views/ContratoView'
 import { TrabajadorView }       from './views/TrabajadorView'
 import { GestionContratosView } from './views/GestionContratosView'
+import { PublicView }           from './views/PublicView'
+
+// Detectar si la URL tiene ?vista=publica
+const esModoPublico = new URLSearchParams(window.location.search).get('vista') === 'publica'
 
 export default function App() {
+  const isMobile = useIsMobile()
+
+  // Si el link tiene ?vista=publica, mostrar directamente la vista pública
+  // sin requerir autenticación Firebase
+  if (esModoPublico) return <PublicView isMobile={isMobile} />
+
   const [user, setUser]                       = useState(null)
   const [authLoading, setAuthLoading]         = useState(true)
   const [contratos, setContratos]             = useState([])
@@ -20,7 +30,6 @@ export default function App() {
   const [contratoActivoId, setContratoActivoId] = useState(null)
   const [trabajadorActivo, setTrabajadorActivo] = useState(null)
   const [sidebarOpen, setSidebarOpen]         = useState(false)
-  const isMobile = useIsMobile()
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, u => { setUser(u); setAuthLoading(false) })
