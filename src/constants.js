@@ -34,3 +34,9 @@ export const DOCS_RESTRINGIDOS_PUBLICO = ['Contrato', 'Anexo Contrato']
 // Este email tiene acceso a TODOS los contratos de TODOS los prevencionistas.
 // Los demás usuarios solo ven y administran sus propios datos.
 export const ADMIN_EMAIL = 'lasepulveda@sice.com'
+
+// ─── CÓDIGO VISIBLE DE UN CONTRATO ───────────────────────────────────────────
+// Los contratos nuevos llevan el campo `codigoInterno` (ej: AL10201).
+// Los contratos del seed antiguo usaban el ID de Firestore como código.
+// Esta función garantiza compatibilidad hacia atrás.
+export const codeOf = (c) => c?.codigoInterno || c?.id || ''

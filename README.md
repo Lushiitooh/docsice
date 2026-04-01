@@ -238,7 +238,7 @@ Todos los documentos incluyen el campo `uid` del prevencionista propietario.
 
 ```
 contratos/{id}
-  nombre, codigo, color, uid
+  codigoInterno (ej: AL10201), nombre, codigo, color, uid
 
 doc_tipos/{id}
   contratoId, nombre, tipo, es_adicional, activo, orden, uid
@@ -273,6 +273,7 @@ docs_cargados/{id}
 
 | Versión | Cambio |
 |---------|--------|
+| Código interno de contrato | Campo `codigoInterno` (ej: AL10201) separado del ID de Firestore. Se ingresa al crear/editar. `codeOf(c)` lo muestra en toda la UI con fallback al ID para contratos legacy. |
 | Multi-tenant | Campo `uid` en todos los documentos. Cada prevencionista ve solo sus datos. Admin (`lasepulveda@sice.com`) ve todos. |
 | Vista pública default | La página principal es pública (sin login). Prevencionistas acceden por botón "🔐 Iniciar sesión" en el banner. |
 | Cloudinary | Reemplazó Firebase Storage. Subida directa desde el frontend con preset unsigned. Eliminación física vía Cloud Function. |

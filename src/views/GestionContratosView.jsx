@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { C, COLORES_CONTRATO } from '../constants'
+import { C, COLORES_CONTRATO, codeOf } from '../constants'
 import { Btn, Modal, Input } from '../components/ui'
 import {
   addContrato, editarContrato, eliminarContrato,
@@ -25,19 +25,25 @@ const ColorPicker = ({ value, onChange }) => (
 export const GestionContratosView = ({ contratos, onContratosChange, isMobile, uid, isAdmin }) => {
   const [modalNuevo, setModalNuevo]             = useState(false)
   const [modalEditar, setModalEditar]           = useState(false)
-  const [nuevoContrato, setNuevoContrato]       = useState({ nombre:'', codigo:'', color:'#3b82f6' })
-  const [contratoEditar, setContratoEditar]     = useState({ id:'', nombre:'', codigo:'', color:'#3b82f6' })
+  const [nuevoContrato, setNuevoContrato]       = useState({ codigoInterno:'', nombre:'', codigo:'', color:'#3b82f6' })
+  const [contratoEditar, setContratoEditar]     = useState({ id:'', codigoInterno:'', nombre:'', codigo:'', color:'#3b82f6' })
 
   const crearContrato = async () => {
-    if (!nuevoContrato.nombre.trim() || !nuevoContrato.codigo.trim()) return
-    await addContrato({ nombre:nuevoContrato.nombre.trim(), codigo:nuevoContrato.codigo.trim(), color:nuevoContrato.color }, uid)
-    setNuevoContrato({ nombre:'', codigo:'', color:'#3b82f6' })
+    if (!nuevoContrato.nombre.trim() || !nuevoContrato.codigo.trim() || !nuevoContrato.codigoInterno.trim()) return
+    await addContrato({
+      codigoInterno: nuevoContrato.codigoInterno.trim().toUpperCase(),
+      nombre: nuevoContrato.nombre.trim(),
+      codigo: nuevoContrato.codigo.trim(),
+      color: nuevoContrato.color,
+    }, uid)
+    setNuevoContrato({ codigoInterno:'', nombre:'', codigo:'', color:'#3b82f6' })
     setModalNuevo(false); onContratosChange()
   }
 
   const guardarEdicion = async () => {
-    if (!contratoEditar.nombre.trim() || !contratoEditar.codigo.trim()) return
+    if (!contratoEditar.nombre.trim() || !contratoEditar.codigo.trim() || !contratoEditar.codigoInterno.trim()) return
     await editarContrato(contratoEditar.id, {
+      codigoInterno: contratoEditar.codigoInterno.trim().toUpperCase(),
       nombre: contratoEditar.nombre.trim(),
       codigo: contratoEditar.codigo.trim(),
       color:  contratoEditar.color,
@@ -46,12 +52,12 @@ export const GestionContratosView = ({ contratos, onContratosChange, isMobile, u
   }
 
   const eliminarContratoHandler = async (c) => {
-    if (!confirm(`¿Eliminar el contrato "${c.nombre}" (${c.id})?\n\nNota: Los trabajadores y documentos asociados NO se eliminarán de la base de datos.`)) return
+    if (!confirm(`¿Eliminar el contrato "${c.nombre}" (${codeOf(c)})?\n\nNota: Los trabajadores y documentos asociados NO se eliminarán de la base de datos.`)) return
     await eliminarContrato(c.id); onContratosChange()
   }
 
   const abrirEditar = (c) => {
-    setContratoEditar({ id:c.id, nombre:c.nombre, codigo:c.codigo, color:c.color })
+    setContratoEditar({ id:c.id, codigoInterno:c.codigoInterno||'', nombre:c.nombre, codigo:c.codigo, color:c.color })
     setModalEditar(true)
   }
 
@@ -69,7 +75,7 @@ export const GestionContratosView = ({ contratos, onContratosChange, isMobile, u
             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center',
               flexWrap:'wrap', gap:8 }}>
               <div>
-                <div style={{ fontSize:12, fontWeight:700, color:c.color, marginBottom:2 }}>{c.id}</div>
+                <div style={{ fontSize:12, fontWeight:700, color:c.color, marginBottom:2 }}>{codeOf(c)}</div>
                 <div style={{ fontSize:15, fontWeight:600, color:C.text }}>{c.nombre}</div>
                 <div style={{ fontSize:12, color:C.textMuted, marginTop:2 }}>Código: {c.codigo}</div>
               </div>
@@ -89,10 +95,13 @@ export const GestionContratosView = ({ contratos, onContratosChange, isMobile, u
 
       {modalNuevo && (
         <Modal title="Nuevo contrato" onClose={() => setModalNuevo(false)}>
+          <Input label="ID Interno" value={nuevoContrato.codigoInterno}
+            onChange={e=>setNuevoContrato(p=>({...p,codigoInterno:e.target.value}))}
+            placeholder="Ej: AL10201" />
           <Input label="Nombre del contrato" value={nuevoContrato.nombre}
             onChange={e=>setNuevoContrato(p=>({...p,nombre:e.target.value}))}
             placeholder="Ej: Mantenimiento sistema de peajes..." />
-          <Input label="Código" value={nuevoContrato.codigo}
+          <Input label="Código de contrato" value={nuevoContrato.codigo}
             onChange={e=>setNuevoContrato(p=>({...p,codigo:e.target.value}))}
             placeholder="Ej: MN-001-2024-G" />
           <ColorPicker value={nuevoContrato.color}
@@ -106,9 +115,12 @@ export const GestionContratosView = ({ contratos, onContratosChange, isMobile, u
 
       {modalEditar && (
         <Modal title="Editar contrato" onClose={() => setModalEditar(false)}>
+          <Input label="ID Interno" value={contratoEditar.codigoInterno}
+            onChange={e=>setContratoEditar(p=>({...p,codigoInterno:e.target.value}))}
+            placeholder="Ej: AL10201" />
           <Input label="Nombre del contrato" value={contratoEditar.nombre}
             onChange={e=>setContratoEditar(p=>({...p,nombre:e.target.value}))} />
-          <Input label="Código" value={contratoEditar.codigo}
+          <Input label="Código de contrato" value={contratoEditar.codigo}
             onChange={e=>setContratoEditar(p=>({...p,codigo:e.target.value}))} />
           <ColorPicker value={contratoEditar.color}
             onChange={col=>setContratoEditar(p=>({...p,color:col}))} />

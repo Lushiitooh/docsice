@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { signOut, onAuthStateChanged } from 'firebase/auth'
 import { auth } from './firebase/config'
 import { getContratos, getTrabajadores, getDocTipos, getDocsCargadosPorContrato, calcularCumplimiento, seedInicial } from './firebase/service'
-import { ADMIN_EMAIL } from './constants'
+import { ADMIN_EMAIL, codeOf } from './constants'
 import { useIsMobile } from './hooks/useIsMobile'
 import { Sidebar, TopBar } from './components/Sidebar'
 import { DashboardView }        from './views/DashboardView'
@@ -70,7 +70,7 @@ export default function App() {
             if (!t||!dt) continue
             const dias = dc.fechaVenc ? Math.round((new Date(dc.fechaVenc)-new Date())/86400000) : null
             alertas.push({ tipo:dc.estado, trabajador:`${t.nombres} ${t.apellidos}`,
-              doc:dt.nombre, contrato:c.id, diasRestantes:dias })
+              doc:dt.nombre, contrato:codeOf(c), diasRestantes:dias })
           }
         }
         map[c.id] = { pct, totalTrabajadores:trabajadores.length,
@@ -111,7 +111,7 @@ export default function App() {
 
   const getTitle = () => {
     if (trabajadorActivo) return `${trabajadorActivo.nombres} ${trabajadorActivo.apellidos}`
-    if (view==='contrato' && contratoActivo) return contratoActivo.id
+    if (view==='contrato' && contratoActivo) return codeOf(contratoActivo)
     if (view==='alertas') return 'Alertas'
     return 'Dashboard'
   }

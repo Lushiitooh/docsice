@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { C } from '../constants'
+import { C, codeOf } from '../constants'
 import { Btn, Modal, Input, ProgressBar } from '../components/ui'
 import {
   getTrabajadores, getDocTipos, getDocsCargadosPorContrato, getTrabajadoresDesvinculados,
@@ -105,7 +105,7 @@ export const ContratoView = ({ contrato, onSelectTrabajador, isMobile, uid, isAd
     <div style={{ padding:isMobile?12:28, overflowY:'auto', flex:1 }}>
       <div style={{ marginBottom:14 }}>
         <div style={{ fontSize:12, fontWeight:700, color:contrato.color, marginBottom:3 }}>
-          {contrato.id} · {contrato.codigo}
+          {codeOf(contrato)} · {contrato.codigo}
         </div>
         <div style={{ fontSize:isMobile?15:18, fontWeight:800, color:C.text, marginBottom:10 }}>
           {contrato.nombre}
@@ -259,7 +259,7 @@ export const ContratoView = ({ contrato, onSelectTrabajador, isMobile, uid, isAd
       {modalNuevoDoc && (
         <Modal title="Agregar documento adicional" onClose={() => setModalNuevoDoc(false)}>
           <p style={{ fontSize:13, color:C.textMuted, marginTop:0 }}>
-            Se asignará a <strong>todos</strong> los trabajadores del contrato {contrato.id}.
+            Se asignará a <strong>todos</strong> los trabajadores del contrato {codeOf(contrato)}.
           </p>
           <Input label="Nombre del documento" value={nuevoDocNombre}
             onChange={e=>setNuevoDocNombre(e.target.value)} placeholder="Ej: Curso Manejo Defensivo" />

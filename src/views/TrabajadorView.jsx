@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { C } from '../constants'
+import { C, codeOf } from '../constants'
 import { Btn, Modal, Input, Badge, ProgressBar } from '../components/ui'
 import {
   getDocTipos, getDocTiposIndividuales, getDocsCargados,
@@ -160,7 +160,7 @@ export const TrabajadorView = ({ trabajador, contrato, onBack, isMobile, uid }) 
             <h2 style={{ margin:0, fontSize:18, fontWeight:800, color:C.text }}>
               {trabajador.nombres} {trabajador.apellidos}
             </h2>
-            <div style={{ fontSize:13, color:C.textMuted }}>{trabajador.cargo} · {trabajador.rut} · {contrato.id}</div>
+            <div style={{ fontSize:13, color:C.textMuted }}>{trabajador.cargo} · {trabajador.rut} · {codeOf(contrato)}</div>
           </div>
           <div style={{ textAlign:'right' }}>
             <div style={{ fontSize:28, fontWeight:900, color:pct>=90?C.green:pct>=70?C.amber:C.red }}>{pct}%</div>

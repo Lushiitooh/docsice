@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { signInWithEmailAndPassword } from 'firebase/auth'
 import { auth } from '../firebase/config'
-import { C, DOCS_RESTRINGIDOS_PUBLICO } from '../constants'
+import { C, DOCS_RESTRINGIDOS_PUBLICO, codeOf } from '../constants'
 import { Badge, ProgressBar } from '../components/ui'
 import {
   getContratos, getTrabajadores, getDocTipos, getDocTiposIndividuales,
@@ -134,7 +134,7 @@ const ContratosList = ({ contratos, statsMap, onSelect, isMobile }) => (
             onMouseLeave={e => e.currentTarget.style.boxShadow='none'}>
             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:12 }}>
               <div style={{ flex:1, minWidth:0, marginRight:12 }}>
-                <div style={{ fontSize:12, fontWeight:700, color:c.color, marginBottom:3 }}>{c.id}</div>
+                <div style={{ fontSize:12, fontWeight:700, color:c.color, marginBottom:3 }}>{codeOf(c)}</div>
                 <div style={{ fontSize:14, fontWeight:700, color:C.text, lineHeight:1.3 }}>{c.nombre}</div>
                 <div style={{ fontSize:12, color:C.textMuted, marginTop:3 }}>Código: {c.codigo}</div>
               </div>
@@ -210,7 +210,7 @@ const TrabajadoresList = ({ contrato, onBack, onSelectTrabajador, isMobile }) =>
           ← Volver
         </button>
         <div>
-          <div style={{ fontSize:12, fontWeight:700, color:contrato.color }}>{contrato.id}</div>
+          <div style={{ fontSize:12, fontWeight:700, color:contrato.color }}>{codeOf(contrato)}</div>
           <div style={{ fontSize:15, fontWeight:800, color:C.text }}>{contrato.nombre}</div>
         </div>
       </div>
@@ -424,7 +424,7 @@ const DocumentosTrabajador = ({ trabajador, contrato, docTiposContrato, docsCarg
           <h2 style={{ margin:0, fontSize:isMobile?15:18, fontWeight:800, color:C.text }}>
             {trabajador.nombres} {trabajador.apellidos}
           </h2>
-          <div style={{ fontSize:12, color:C.textMuted }}>{trabajador.cargo} · {trabajador.rut} · {contrato.id}</div>
+          <div style={{ fontSize:12, color:C.textMuted }}>{trabajador.cargo} · {trabajador.rut} · {codeOf(contrato)}</div>
         </div>
         <div style={{ textAlign:'right', flexShrink:0 }}>
           <div style={{ fontSize:isMobile?20:28, fontWeight:900,
