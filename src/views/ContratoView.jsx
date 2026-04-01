@@ -8,7 +8,7 @@ import {
   importarTrabajadoresCSV, calcularCumplimiento,
 } from '../firebase/service'
 
-export const ContratoView = ({ contrato, onSelectTrabajador, isMobile }) => {
+export const ContratoView = ({ contrato, onSelectTrabajador, isMobile, uid, isAdmin }) => {
   const [trabajadores, setTrabajadores]           = useState([])
   const [docTipos, setDocTipos]                   = useState([])
   const [docsCargados, setDocsCargados]           = useState([])
@@ -40,20 +40,20 @@ export const ContratoView = ({ contrato, onSelectTrabajador, isMobile }) => {
 
   const addDocAdicional = async () => {
     if (!nuevoDocNombre.trim()) return
-    await addDocTipo(contrato.id, nuevoDocNombre.trim(), nuevoDocTipo)
+    await addDocTipo(contrato.id, nuevoDocNombre.trim(), nuevoDocTipo, uid)
     setNuevoDocNombre(''); setModalNuevoDoc(false); cargar()
   }
 
   const crearTrabajador = async () => {
     if (!nuevoTrab.rut || !nuevoTrab.nombres) return
-    await addTrabajador({ ...nuevoTrab, contratoId: contrato.id })
+    await addTrabajador({ ...nuevoTrab, contratoId: contrato.id }, uid)
     setNuevoTrab({ rut:'', nombres:'', apellidos:'', cargo:'' })
     setModalNuevoTrab(false); cargar()
   }
 
   const importarCSV = async () => {
     if (!csvText.trim()) return
-    const count = await importarTrabajadoresCSV(contrato.id, csvText)
+    const count = await importarTrabajadoresCSV(contrato.id, csvText, uid)
     alert(`✅ ${count} trabajadores importados`)
     setModalImport(false); setCsvText(''); cargar()
   }

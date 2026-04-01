@@ -8,7 +8,7 @@ import {
   calcularCumplimiento,
 } from '../firebase/service'
 
-export const TrabajadorView = ({ trabajador, contrato, onBack, isMobile }) => {
+export const TrabajadorView = ({ trabajador, contrato, onBack, isMobile, uid }) => {
   const [docTipos, setDocTipos]                       = useState([])
   const [docsCargados, setDocsCargados]               = useState([])
   const [loading, setLoading]                         = useState(true)
@@ -37,7 +37,7 @@ export const TrabajadorView = ({ trabajador, contrato, onBack, isMobile }) => {
     if (!archivo || !modalDoc) return
     setSubiendo(true)
     await subirDocumento({ trabajadorId:trabajador.id, contratoId:contrato.id,
-      docTipoId:modalDoc.id, archivo, fechaVenc:fechaVenc||null })
+      docTipoId:modalDoc.id, archivo, fechaVenc:fechaVenc||null, uid })
     setModalDoc(null); setArchivo(null); setFechaVenc(''); setSubiendo(false); cargar()
   }
 
@@ -48,7 +48,7 @@ export const TrabajadorView = ({ trabajador, contrato, onBack, isMobile }) => {
 
   const crearDocIndividual = async () => {
     if (!nuevoDocIndivNombre.trim()) return
-    await addDocTipoIndividual(contrato.id, trabajador.id, nuevoDocIndivNombre.trim(), nuevoDocIndivTipo)
+    await addDocTipoIndividual(contrato.id, trabajador.id, nuevoDocIndivNombre.trim(), nuevoDocIndivTipo, uid)
     setNuevoDocIndivNombre(''); setModalDocIndiv(false); cargar()
   }
 

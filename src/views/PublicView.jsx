@@ -454,7 +454,8 @@ export const PublicView = ({ isMobile, showLogin, onLoginClick, onLoginClose }) 
   const [docsCargadosActivos, setDocsCargadosActivos] = useState([])
 
   useEffect(() => {
-    getContratos().then(async (data) => {
+    // isAdmin=true → la vista pública muestra contratos de TODOS los prevencionistas
+    getContratos(null, true).then(async (data) => {
       setContratos(data)
       // Calcular stats globales para la lista de contratos
       const map = {}

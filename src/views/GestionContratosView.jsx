@@ -22,7 +22,7 @@ const ColorPicker = ({ value, onChange }) => (
 )
 
 // ─── GESTIÓN DE CONTRATOS ─────────────────────────────────────────────────────
-export const GestionContratosView = ({ contratos, onContratosChange, isMobile }) => {
+export const GestionContratosView = ({ contratos, onContratosChange, isMobile, uid, isAdmin }) => {
   const [modalNuevo, setModalNuevo]             = useState(false)
   const [modalEditar, setModalEditar]           = useState(false)
   const [nuevoContrato, setNuevoContrato]       = useState({ nombre:'', codigo:'', color:'#3b82f6' })
@@ -30,7 +30,7 @@ export const GestionContratosView = ({ contratos, onContratosChange, isMobile })
 
   const crearContrato = async () => {
     if (!nuevoContrato.nombre.trim() || !nuevoContrato.codigo.trim()) return
-    await addContrato({ nombre:nuevoContrato.nombre.trim(), codigo:nuevoContrato.codigo.trim(), color:nuevoContrato.color })
+    await addContrato({ nombre:nuevoContrato.nombre.trim(), codigo:nuevoContrato.codigo.trim(), color:nuevoContrato.color }, uid)
     setNuevoContrato({ nombre:'', codigo:'', color:'#3b82f6' })
     setModalNuevo(false); onContratosChange()
   }

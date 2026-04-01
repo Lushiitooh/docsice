@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { signOut, onAuthStateChanged } from 'firebase/auth'
 import { auth } from './firebase/config'
 import { getContratos, getTrabajadores, getDocTipos, getDocsCargadosPorContrato, calcularCumplimiento, seedInicial } from './firebase/service'
+import { ADMIN_EMAIL } from './constants'
 import { useIsMobile } from './hooks/useIsMobile'
 import { Sidebar, TopBar } from './components/Sidebar'
 import { DashboardView }        from './views/DashboardView'
@@ -33,6 +34,9 @@ export default function App() {
     return unsub
   }, [])
 
+  // ── Rol del usuario autenticado ──────────────────────────────────────────────
+  const isAdmin = user?.email === ADMIN_EMAIL
+
   useEffect(() => {
     if (!user) return
     recargarContratos()
@@ -41,7 +45,8 @@ export default function App() {
   }, [user])
 
   const recargarContratos = () => {
-    getContratos().then(data => { setContratos(data); cargarStats(data) })
+    if (!user) return
+    getContratos(user.uid, isAdmin).then(data => { setContratos(data); cargarStats(data) })
   }
 
   const cargarStats = async (contratos) => {
@@ -139,14 +144,16 @@ export default function App() {
           <AlertasView statsMap={statsMap} isMobile={isMobile} />
         )}
         {view==='contratos' && (
-          <GestionContratosView contratos={contratos} onContratosChange={recargarContratos} isMobile={isMobile} />
+          <GestionContratosView contratos={contratos} onContratosChange={recargarContratos}
+            isMobile={isMobile} uid={user.uid} isAdmin={isAdmin} />
         )}
         {view==='contrato' && contratoActivo && !trabajadorActivo && (
-          <ContratoView contrato={contratoActivo} onSelectTrabajador={t=>setTrabajadorActivo(t)} isMobile={isMobile} />
+          <ContratoView contrato={contratoActivo} onSelectTrabajador={t=>setTrabajadorActivo(t)}
+            isMobile={isMobile} uid={user.uid} isAdmin={isAdmin} />
         )}
         {view==='contrato' && contratoActivo && trabajadorActivo && (
           <TrabajadorView trabajador={trabajadorActivo} contrato={contratoActivo}
-            onBack={() => setTrabajadorActivo(null)} isMobile={isMobile} />
+            onBack={() => setTrabajadorActivo(null)} isMobile={isMobile} uid={user.uid} />
         )}
       </main>
     </div>

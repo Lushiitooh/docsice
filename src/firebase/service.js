@@ -7,8 +7,15 @@ import { db, app } from './config'
 import { CLOUDINARY_CLOUD_NAME, CLOUDINARY_UPLOAD_PRESET } from './config'
 
 // ─── CONTRATOS ───────────────────────────────────────────────────────────────
-export const getContratos = async () => {
-  const snap = await getDocs(collection(db, 'contratos'))
+// uid      → UID del usuario autenticado (para filtrar sus propios contratos)
+// isAdmin  → si true, devuelve TODOS los contratos (sin importar el dueño)
+export const getContratos = async (uid, isAdmin = false) => {
+  if (isAdmin) {
+    const snap = await getDocs(collection(db, 'contratos'))
+    return snap.docs.map(d => ({ id: d.id, ...d.data() }))
+  }
+  const q = query(collection(db, 'contratos'), where('uid', '==', uid))
+  const snap = await getDocs(q)
   return snap.docs.map(d => ({ id: d.id, ...d.data() }))
 }
 
@@ -24,7 +31,7 @@ export const getDocTipos = async (contratoId) => {
   return snap.docs.map(d => ({ id: d.id, ...d.data() }))
 }
 
-export const addDocTipo = async (contratoId, nombre, tipo) => {
+export const addDocTipo = async (contratoId, nombre, tipo, uid) => {
   // Obtener el orden máximo actual
   const existentes = await getDocTipos(contratoId)
   const maxOrden = existentes.reduce((m, d) => Math.max(m, d.orden || 0), 0)
@@ -36,6 +43,7 @@ export const addDocTipo = async (contratoId, nombre, tipo) => {
     es_adicional: true,
     activo: true,
     orden: maxOrden + 1,
+    uid,
     creadoEn: serverTimestamp(),
   })
 }
@@ -55,9 +63,10 @@ export const getTrabajadores = async (contratoId) => {
   return snap.docs.map(d => ({ id: d.id, ...d.data() }))
 }
 
-export const addTrabajador = async (data) => {
+export const addTrabajador = async (data, uid) => {
   return addDoc(collection(db, 'trabajadores'), {
     ...data,
+    uid,
     activo: true,
     creadoEn: serverTimestamp(),
   })
@@ -86,7 +95,7 @@ export const getDocsCargadosPorContrato = async (contratoId) => {
   return snap.docs.map(d => ({ id: d.id, ...d.data() }))
 }
 
-export const subirDocumento = async ({ trabajadorId, contratoId, docTipoId, archivo, fechaVenc }) => {
+export const subirDocumento = async ({ trabajadorId, contratoId, docTipoId, archivo, fechaVenc, uid }) => {
 
   // 1. Subir a Cloudinary
   const formData = new FormData()
@@ -133,6 +142,7 @@ export const subirDocumento = async ({ trabajadorId, contratoId, docTipoId, arch
       publicId,
       fechaVenc:  fechaVenc || null,
       estado,
+      uid,
       creadoEn:   serverTimestamp(),
     })
     return docRef.id
@@ -188,7 +198,7 @@ export const calcularCumplimiento = (docTipos, docsCargados) => {
 
 // ─── IMPORTAR TRABAJADORES DESDE CSV ─────────────────────────────────────────
 // CSV esperado: rut,nombres,apellidos,cargo
-export const importarTrabajadoresCSV = async (contratoId, csvText) => {
+export const importarTrabajadoresCSV = async (contratoId, csvText, uid) => {
   const lines = csvText.trim().split('\n').slice(1) // skip header
   const batch = writeBatch(db)
   let count = 0
@@ -203,6 +213,7 @@ export const importarTrabajadoresCSV = async (contratoId, csvText) => {
       nombres,
       apellidos: apellidos || '',
       cargo: cargo || '',
+      uid,
       activo: true,
       creadoEn: serverTimestamp(),
     })
@@ -308,7 +319,7 @@ export const getTrabajadoresDesvinculados = async (contratoId) => {
 }
 
 // ─── DOC TIPOS INDIVIDUALES POR TRABAJADOR ────────────────────────────────────
-export const addDocTipoIndividual = async (contratoId, trabajadorId, nombre, tipo) => {
+export const addDocTipoIndividual = async (contratoId, trabajadorId, nombre, tipo, uid) => {
   return addDoc(collection(db, 'doc_tipos_worker'), {
     contratoId,
     trabajadorId,
@@ -316,6 +327,7 @@ export const addDocTipoIndividual = async (contratoId, trabajadorId, nombre, tip
     tipo,
     es_individual: true,
     activo: true,
+    uid,
     creadoEn: serverTimestamp(),
   })
 }
@@ -335,9 +347,10 @@ export const toggleDocTipoIndividual = async (docTipoId, activo) => {
 }
 
 // ─── GESTIÓN DE CONTRATOS ─────────────────────────────────────────────────────
-export const addContrato = async (data) => {
+export const addContrato = async (data, uid) => {
   return addDoc(collection(db, 'contratos'), {
     ...data,
+    uid,
     creadoEn: serverTimestamp(),
   })
 }

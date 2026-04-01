@@ -29,3 +29,8 @@ export const COLORES_CONTRATO = [
 // Estos tipos de documento NUNCA se muestran a visitantes (técnicos, supervisores).
 // Solo los prevencionistas autenticados pueden verlos.
 export const DOCS_RESTRINGIDOS_PUBLICO = ['Contrato', 'Anexo Contrato']
+
+// ─── CUENTA ADMINISTRADORA ────────────────────────────────────────────────────
+// Este email tiene acceso a TODOS los contratos de TODOS los prevencionistas.
+// Los demás usuarios solo ven y administran sus propios datos.
+export const ADMIN_EMAIL = 'lasepulveda@sice.com'
