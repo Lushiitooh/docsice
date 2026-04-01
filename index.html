@@ -2,13 +2,28 @@
 <html lang="es">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>DocSICE — Control Documental</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-    <script type="module" crossorigin src="/docsice/assets/index-sFWE2ug9.js"></script>
+    <style>
+      *, *::before, *::after { box-sizing: border-box; }
+      html, body {
+        margin: 0;
+        padding: 0;
+        overflow-x: hidden;
+        -webkit-text-size-adjust: 100%;
+        text-size-adjust: 100%;
+      }
+      /* Evita el flash azul al tocar botones en móvil */
+      button { -webkit-tap-highlight-color: transparent; }
+      /* Usa altura dinámica del viewport (descuenta barra del browser en iOS/Android) */
+      :root { --vh: 1vh; }
+      .full-height { height: 100vh; height: 100dvh; }
+    </style>
+    <script type="module" crossorigin src="/docsice/assets/index-DSyFKpNp.js"></script>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root"></div>
   </body>
 </html>
