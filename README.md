@@ -1,8 +1,26 @@
 # DocSICE — Control Documental HSE
 
-Sistema de gestión documental para trabajadores por contrato. Permite subir, visualizar y detectar documentos vencidos de forma centralizada.
+Sistema de gestión documental para trabajadores por contrato. Permite subir, visualizar y detectar documentos vencidos de forma centralizada, con acceso diferenciado por rol.
 
-**Stack:** React 18 + Vite · Firebase Auth + Firestore · Cloudinary (almacenamiento de archivos) · GitHub Pages
+**Stack:** React 18 + Vite · Firebase Auth + Firestore · Cloudinary · GitHub Pages · Firebase Cloud Functions
+
+---
+
+## ARQUITECTURA DE ACCESO (3 niveles)
+
+| Rol | Acceso | Cómo entra |
+|-----|--------|------------|
+| **Público** (técnico, supervisor, trabajador) | Solo lectura. Ve todos los contratos, trabajadores y documentos vigentes (no restringidos) | Link directo, sin contraseña |
+| **Prevencionista** | CRUD completo. Solo ve y administra **sus propios** contratos y trabajadores | Botón "🔐 Iniciar sesión" en el banner |
+| **Administrador** (`lasepulveda@sice.com`) | CRUD completo. Ve y administra los contratos de **todos** los prevencionistas | Misma pantalla de login |
+
+### Documentos restringidos en vista pública
+Los documentos de tipo `Contrato` y `Anexo Contrato` nunca son visibles para usuarios no autenticados. Se filtran en el cliente (`DOCS_RESTRINGIDOS_PUBLICO` en `constants.js`).
+
+### Aislamiento de datos
+Cada documento en Firestore lleva un campo `uid` con el UID del prevencionista que lo creó. Las queries filtran por `uid` para aislar los datos. El admin omite el filtro y ve todo.
+
+> **Datos existentes sin campo `uid`** → Solo el administrador los ve. Para asignarlos a un prevencionista, agrega manualmente el campo `uid` en Firestore Console.
 
 ---
 
@@ -13,22 +31,24 @@ docsice/
 ├── index.html
 ├── vite.config.js
 ├── package.json
-├── firebase.json             ← Configuración Firebase (Firestore + Functions)
-├── firestore.rules
+├── firebase.json             ← Firestore rules + Cloud Functions config
+├── firestore.rules           ← Reglas de seguridad por uid y rol
 ├── functions/                ← Cloud Functions (eliminación física en Cloudinary)
 │   ├── index.js
 │   └── package.json
 └── src/
     ├── main.jsx
-    ├── App.jsx               ← Orquestador raíz (solo imports y routing)
-    ├── constants.js          ← Colores, STATUS_CONFIG, COLORES_CONTRATO
+    ├── App.jsx               ← Orquestador raíz. Decide vista pública vs admin.
+    ├── constants.js          ← C (colores), STATUS_CONFIG, COLORES_CONTRATO,
+    │                            DOCS_RESTRINGIDOS_PUBLICO, ADMIN_EMAIL
     ├── hooks/
     │   └── useIsMobile.js
     ├── components/
     │   ├── ui/index.jsx      ← Badge, ProgressBar, Btn, Modal, Input
-    │   └── Sidebar.jsx       ← Sidebar + TopBar móvil
+    │   └── Sidebar.jsx       ← Sidebar (desktop) + TopBar (móvil)
     ├── views/
-    │   ├── LoginView.jsx
+    │   ├── PublicView.jsx    ← Vista pública (página principal). Incluye LoginModal.
+    │   ├── LoginView.jsx     ← (Reservado, no se usa en el flujo principal)
     │   ├── DashboardView.jsx
     │   ├── AlertasView.jsx
     │   ├── ContratoView.jsx
@@ -44,8 +64,8 @@ docsice/
 ## PASO 1 — Crear proyecto Firebase
 
 1. Ve a https://console.firebase.google.com
-2. Clic en "Crear proyecto" → Nombre: `docsice-sice` (o el que quieras)
-3. Desactiva Google Analytics (no lo necesitas)
+2. Clic en "Crear proyecto" → Nombre: `docsice-sice`
+3. Desactiva Google Analytics (no necesario)
 
 ---
 
@@ -53,18 +73,25 @@ docsice/
 
 1. Firebase Console → **Authentication** → "Comenzar"
 2. Pestaña "Sign-in method" → habilitar **Email/contraseña**
-3. Pestaña "Users" → "Agregar usuario"
-   - Email: `admin@sice.cl` (o el tuyo)
-   - Contraseña: elige una segura
+3. Pestaña "Users" → crear cuentas:
+   - **Administrador:** `lasepulveda@sice.com` (ve todo)
+   - **Prevencionistas:** un usuario por cada prevencionista que usará el sistema
+
+> Cada prevencionista verá únicamente los contratos que él mismo haya creado.
 
 ---
 
 ## PASO 3 — Activar Firestore
 
 1. Firebase Console → **Firestore Database** → "Crear base de datos"
-2. Elige modo **producción** · Región: `us-central` o `southamerica-east1`
-3. Ve a la pestaña **Reglas** y pega el contenido de `firestore.rules`
+2. Modo **producción** · Región: `southamerica-east1`
+3. Ve a la pestaña **Reglas** → pega el contenido de `firestore.rules`
 4. Clic en "Publicar"
+
+Las reglas implementadas permiten:
+- Lectura pública en las 5 colecciones principales (para la vista sin login)
+- Escritura solo a usuarios autenticados
+- Modificación/eliminación solo al dueño del documento (`uid == auth.uid`) o al admin
 
 ---
 
@@ -80,13 +107,11 @@ El almacenamiento de archivos usa **Cloudinary** (no Firebase Storage).
 
 ---
 
-## PASO 5 — Obtener credenciales Firebase y pegarlas
+## PASO 5 — Obtener credenciales Firebase
 
-1. Firebase Console → ⚙️ **Project Settings** → sección "Tus apps" → `</>`
+1. Firebase Console → ⚙️ **Project Settings** → "Tus apps" → `</>`
 2. Registra la app con nombre `docsice`
-3. Copia el objeto `firebaseConfig`
-
-Para desarrollo local, crea un archivo `.env.local`:
+3. Crea un archivo `.env.local` en la raíz del proyecto:
 
 ```env
 VITE_API_KEY=tu_api_key
@@ -96,7 +121,7 @@ VITE_STORAGE_BUCKET=tu_proyecto.appspot.com
 VITE_MESSAGING_SENDER_ID=123456789
 VITE_APP_ID=1:123:web:abc
 VITE_CLOUDINARY_CLOUD_NAME=tu_cloud_name
-VITE_CLOUDINARY_UPLOAD_PRESET=tu_preset
+VITE_CLOUDINARY_UPLOAD_PRESET=tu_preset_unsigned
 ```
 
 > `.env.local` está en `.gitignore` — nunca se sube al repo.
@@ -111,17 +136,21 @@ npm run dev
 # Abre http://localhost:5173/docsice/
 ```
 
+La página principal es la **vista pública**. Para ingresar como prevencionista o admin, clic en "🔐 Iniciar sesión" en el banner superior.
+
 ---
 
-## PASO 7 — Seed inicial (solo una vez)
+## PASO 7 — Seed inicial (solo una vez, por prevencionista)
 
-1. Con la app corriendo, inicia sesión
+Si se requiere crear los contratos base de SICE automáticamente:
+
+1. Inicia sesión con tu cuenta de prevencionista
 2. Abre la consola del navegador (F12 → Console)
 3. Escribe: `seed()` y presiona Enter
 4. Espera: ✅ Seed completado
 5. Refresca — aparecerán los 4 contratos en el sidebar
 
-**Solo se hace una vez.**
+> El seed crea los contratos con el `uid` del usuario que lo ejecutó. Cada prevencionista debe ejecutarlo desde su propia sesión si desea tener esa base de contratos.
 
 ---
 
@@ -154,23 +183,16 @@ npm run dev
 ## PASO 10 — Deploy en GitHub Pages
 
 ```bash
-# 1. Crea repositorio en GitHub llamado "docsice"
 git init && git add . && git commit -m "Initial commit"
 git remote add origin https://github.com/TU_USUARIO/docsice.git
 git push -u origin main
-
-# 2. Deploy
-npm run deploy
-
-# 3. GitHub → Settings → Pages → Source: gh-pages branch
-# App disponible en: https://TU_USUARIO.github.io/docsice/
 ```
 
-En `vite.config.js` el `base` debe coincidir con el nombre exacto del repo.
+En GitHub → Settings → Pages → Source: rama `gh-pages`.
 
 ### Variables de entorno en GitHub Actions
 
-En GitHub → Settings → Secrets and variables → Actions, agrega:
+GitHub → Settings → Secrets and variables → Actions:
 
 | Secret | Valor |
 |--------|-------|
@@ -185,74 +207,83 @@ En GitHub → Settings → Secrets and variables → Actions, agrega:
 
 ---
 
-## PASO 11 — Deploy Firebase Cloud Functions (eliminación de archivos)
+## PASO 11 — Deploy Firebase Cloud Functions
 
-Las Cloud Functions permiten eliminar archivos físicamente de Cloudinary cuando se borra un documento.
+Las Cloud Functions permiten eliminar archivos físicamente de Cloudinary al borrar un documento. El `API_SECRET` de Cloudinary se almacena en Firebase Secret Manager (no en el código).
 
 ```bash
-# 1. Instalar Firebase CLI (si no lo tienes)
 npm install -g firebase-tools
-
-# 2. Login
 firebase login
-
-# 3. Asociar el proyecto
 firebase use tu-proyecto-id
 
-# 4. Configurar secretos de Cloudinary (API Secret nunca va en el código)
+# Configurar secretos (nunca van en el código fuente)
 firebase functions:secrets:set CLOUDINARY_CLOUD_NAME
 firebase functions:secrets:set CLOUDINARY_API_KEY
 firebase functions:secrets:set CLOUDINARY_API_SECRET
 
-# 5. Instalar dependencias de functions
 cd functions && npm install && cd ..
-
-# 6. Desplegar
 firebase deploy --only functions
+
+# Publicar reglas de Firestore actualizadas
+firebase deploy --only firestore:rules
 ```
 
-> Si no despliegas las functions, la app sigue funcionando igual — solo que los archivos eliminados quedarán en Cloudinary hasta que los limpies manualmente desde su dashboard.
+> Si no despliegas las Functions, la app sigue funcionando. Los archivos eliminados quedarán en Cloudinary hasta que los limpies manualmente.
+
+---
+
+## COLECCIONES EN FIRESTORE
+
+Todos los documentos incluyen el campo `uid` del prevencionista propietario.
+
+```
+contratos/{id}
+  nombre, codigo, color, uid
+
+doc_tipos/{id}
+  contratoId, nombre, tipo, es_adicional, activo, orden, uid
+
+doc_tipos_worker/{id}
+  contratoId, trabajadorId, nombre, tipo, es_individual, activo, uid
+
+trabajadores/{id}
+  contratoId, rut, nombres, apellidos, cargo, activo, desvinculado, uid
+
+docs_cargados/{id}
+  trabajadorId, contratoId, docTipoId
+  url, publicId, fechaVenc, estado, uid
+  (estado: ok | proximo | vencido)
+```
 
 ---
 
 ## LÓGICA DEL % DE CUMPLIMIENTO
 
 ```
-% = docs cargados (vigentes o no_aplica) / total tipos activos del contrato
+% = docs cargados (vigentes) / total tipos activos del contrato
 ```
 
-- Cuando agregas un doc adicional → el denominador sube → el % baja
-- Cuando subes un archivo → el numerador sube → el % sube
-- El recálculo es automático en cada carga de la vista
+- Agregar doc adicional → denominador sube → % baja
+- Subir archivo → numerador sube → % sube
+- El recálculo es automático en cada carga de vista
 
 ---
 
-## COLECCIONES EN FIRESTORE
+## HISTORIAL DE CAMBIOS RELEVANTES
 
-```
-contratos/{id}
-  nombre, codigo, color
-
-doc_tipos/{id}
-  contratoId, nombre, tipo, es_adicional, activo, orden
-
-doc_tipos_worker/{id}
-  contratoId, trabajadorId, nombre, tipo, es_individual, activo
-
-trabajadores/{id}
-  contratoId, rut, nombres, apellidos, cargo, activo, desvinculado
-
-docs_cargados/{id}
-  trabajadorId, contratoId, docTipoId
-  url, publicId, fechaVenc, estado
-  (estado: ok | proximo | vencido)
-```
+| Versión | Cambio |
+|---------|--------|
+| Multi-tenant | Campo `uid` en todos los documentos. Cada prevencionista ve solo sus datos. Admin (`lasepulveda@sice.com`) ve todos. |
+| Vista pública default | La página principal es pública (sin login). Prevencionistas acceden por botón "🔐 Iniciar sesión" en el banner. |
+| Cloudinary | Reemplazó Firebase Storage. Subida directa desde el frontend con preset unsigned. Eliminación física vía Cloud Function. |
+| Modularización | Refactor de monolito App.jsx → hooks/, components/ui/, views/ separados. |
+| Reglas Firestore | Lectura pública en 5 colecciones. Escritura autenticada. Modificación solo al dueño o admin. |
 
 ---
 
 ## PRÓXIMOS PASOS
 
-- [ ] Script Python para importar el Excel AL10109 directamente a Firestore
+- [ ] Script para migrar datos existentes sin `uid` asignándolos a un prevencionista específico
 - [ ] Notificaciones por email (Firebase Functions + SendGrid) para alertas automáticas de vencimiento
-- [ ] Exportar resumen en Excel con openpyxl
-- [ ] Integrar con repo HSE existente como módulo independiente
+- [ ] Exportar resumen en Excel
+- [ ] Filtro por prevencionista en la vista del admin (para ver solo un usuario a la vez)
