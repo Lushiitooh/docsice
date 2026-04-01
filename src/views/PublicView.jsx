@@ -83,25 +83,29 @@ const LoginModal = ({ onClose }) => {
 }
 
 // ─── BANNER ───────────────────────────────────────────────────────────────────
-const BannerPublico = ({ onLoginClick }) => (
-  <div style={{ background:'#1e3a5f', padding:'10px 20px', display:'flex',
-    alignItems:'center', justifyContent:'space-between', gap:12, flexShrink:0 }}>
+const BannerPublico = ({ onLoginClick, isMobile }) => (
+  <div style={{ background:'#1e3a5f', padding: isMobile ? '10px 12px' : '10px 20px',
+    display:'flex', alignItems:'center', justifyContent:'space-between', gap:8, flexShrink:0 }}>
     <div style={{ display:'flex', alignItems:'center', gap:10 }}>
       <span style={{ fontSize:18 }}>🗂️</span>
       <div>
         <span style={{ fontSize:14, fontWeight:800, color:'#fff' }}>DocSICE</span>
-        <span style={{ fontSize:12, color:'#94a3b8', marginLeft:8 }}>SICE Agencia Chile</span>
+        {!isMobile && <span style={{ fontSize:12, color:'#94a3b8', marginLeft:8 }}>SICE Agencia Chile</span>}
       </div>
     </div>
-    <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-      <span style={{ background:'rgba(255,255,255,0.08)', color:'#94a3b8', fontSize:11,
-        fontWeight:700, padding:'4px 10px', borderRadius:99, whiteSpace:'nowrap' }}>
-        👁 Solo lectura
-      </span>
+    <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+      {!isMobile && (
+        <span style={{ background:'rgba(255,255,255,0.08)', color:'#94a3b8', fontSize:11,
+          fontWeight:700, padding:'4px 10px', borderRadius:99, whiteSpace:'nowrap' }}>
+          👁 Solo lectura
+        </span>
+      )}
       <button onClick={onLoginClick}
         style={{ background:'rgba(255,255,255,0.12)', border:'1px solid rgba(255,255,255,0.2)',
-          color:'#fff', fontSize:12, fontWeight:600, padding:'5px 12px', borderRadius:8,
-          cursor:'pointer', fontFamily:'inherit', whiteSpace:'nowrap',
+          color:'#fff', fontSize:12, fontWeight:600,
+          padding: isMobile ? '10px 14px' : '5px 12px',
+          minHeight: isMobile ? 40 : 'auto',
+          borderRadius:8, cursor:'pointer', fontFamily:'inherit', whiteSpace:'nowrap',
           transition:'background 0.15s' }}
         onMouseEnter={e=>e.currentTarget.style.background='rgba(255,255,255,0.2)'}
         onMouseLeave={e=>e.currentTarget.style.background='rgba(255,255,255,0.12)'}>
@@ -493,8 +497,8 @@ export const PublicView = ({ isMobile, showLogin, onLoginClick, onLoginClose }) 
   }, [])
 
   if (loadingInicial) return (
-    <div style={{ display:'flex', flexDirection:'column', height:'100vh', fontFamily:"'Inter',system-ui,sans-serif" }}>
-      <BannerPublico onLoginClick={onLoginClick} />
+    <div style={{ display:'flex', flexDirection:'column', height:'100dvh', fontFamily:"'Inter',system-ui,sans-serif" }}>
+      <BannerPublico onLoginClick={onLoginClick} isMobile={isMobile} />
       <div style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center',
         fontSize:14, color:C.textMuted }}>Cargando datos...</div>
     </div>
@@ -523,9 +527,9 @@ export const PublicView = ({ isMobile, showLogin, onLoginClick, onLoginClose }) 
   }
 
   return (
-    <div style={{ display:'flex', flexDirection:'column', height:'100vh',
+    <div style={{ display:'flex', flexDirection:'column', height:'100dvh',
       fontFamily:"'Inter',system-ui,sans-serif", background:C.bg }}>
-      <BannerPublico onLoginClick={onLoginClick} />
+      <BannerPublico onLoginClick={onLoginClick} isMobile={isMobile} />
       {showLogin && <LoginModal onClose={onLoginClose} />}
 
       <main style={{ flex:1, overflow:'hidden', display:'flex', flexDirection:'column' }}>

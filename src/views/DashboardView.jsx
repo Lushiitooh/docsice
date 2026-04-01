@@ -1,4 +1,4 @@
-import { C } from '../constants'
+import { C, codeOf } from '../constants'
 import { ProgressBar } from '../components/ui'
 
 export const DashboardView = ({ contratos, statsMap, onNav, isMobile }) => {
@@ -41,7 +41,7 @@ export const DashboardView = ({ contratos, statsMap, onNav, isMobile }) => {
                 borderTop:`4px solid ${c.color}` }}>
               <div style={{ display:'flex', justifyContent:'space-between', marginBottom:8 }}>
                 <div>
-                  <div style={{ fontSize:12, fontWeight:700, color:c.color }}>{c.id}</div>
+                  <div style={{ fontSize:12, fontWeight:700, color:c.color }}>{codeOf(c)}</div>
                   <div style={{ fontSize:13, fontWeight:600, color:C.text, marginTop:2 }}>{c.nombre}</div>
                 </div>
                 <div style={{ fontSize:22, fontWeight:800,
@@ -87,7 +87,9 @@ export const DashboardView = ({ contratos, statsMap, onNav, isMobile }) => {
                 <div style={{ flex:1, minWidth:0 }}>
                   <div style={{ fontSize:13, fontWeight:600, color:C.text,
                     overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{t.nombre}</div>
-                  <div style={{ fontSize:11, color:C.textMuted }}>{t.contratoId}</div>
+                  <div style={{ fontSize:11, color:C.textMuted }}>
+                    {codeOf(contratos.find(c => c.id === t.contratoId) || { id: t.contratoId })}
+                  </div>
                 </div>
                 <span style={{ fontSize:13, fontWeight:800, flexShrink:0,
                   color:t.pct>=90?C.green:t.pct>=70?C.amber:C.red }}>{t.pct}%</span>

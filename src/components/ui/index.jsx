@@ -27,29 +27,62 @@ export const ProgressBar = ({ pct }) => {
 
 // ─── BOTÓN GENÉRICO ───────────────────────────────────────────────────────────
 export const Btn = ({ onClick, children, variant='primary', size='md', disabled=false, style:s={} }) => {
-  const base = { cursor:disabled?'not-allowed':'pointer', border:'none', borderRadius:8,
-    fontFamily:'inherit', fontWeight:600, opacity:disabled?0.5:1, transition:'opacity 0.15s',
-    fontSize:size==='sm'?12:14, padding:size==='sm'?'5px 10px':'9px 18px', ...s }
-  const v = { primary:{background:C.blue,color:'#fff'}, danger:{background:C.red,color:'#fff'},
-    ghost:{background:'transparent',color:C.textMuted,border:`1px solid ${C.border}`} }
-  return <button onClick={disabled?undefined:onClick} style={{...base,...v[variant]}}>{children}</button>
+  const base = {
+    cursor: disabled ? 'not-allowed' : 'pointer',
+    border: 'none', borderRadius: 8,
+    fontFamily: 'inherit', fontWeight: 600,
+    opacity: disabled ? 0.5 : 1,
+    transition: 'opacity 0.15s',
+    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+    // Tamaños con touch targets adecuados (mínimo 36px alto en sm, 44px en md)
+    fontSize:  size === 'sm' ? 13 : 14,
+    padding:   size === 'sm' ? '8px 13px' : '11px 18px',
+    minHeight: size === 'sm' ? 36 : 44,
+    lineHeight: 1,
+    whiteSpace: 'nowrap',
+    ...s
+  }
+  const v = {
+    primary: { background: C.blue, color: '#fff' },
+    danger:  { background: C.red,  color: '#fff' },
+    ghost:   { background: 'transparent', color: C.textMuted, border: `1px solid ${C.border}` },
+  }
+  return <button onClick={disabled ? undefined : onClick} style={{...base,...v[variant]}}>{children}</button>
 }
 
 // ─── MODAL ────────────────────────────────────────────────────────────────────
-export const Modal = ({ title, onClose, children }) => (
-  <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.5)', display:'flex',
-    alignItems:'center', justifyContent:'center', zIndex:1000, padding:16 }}>
-    <div style={{ background:'#fff', borderRadius:16, padding:24, width:'100%', maxWidth:460,
-      maxHeight:'90vh', overflowY:'auto', boxShadow:'0 20px 60px rgba(0,0,0,0.2)' }}>
-      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:20 }}>
-        <h3 style={{ margin:0, fontSize:16, fontWeight:700, color:C.text }}>{title}</h3>
-        <button onClick={onClose} style={{ border:'none', background:'none', cursor:'pointer',
-          fontSize:22, color:C.textMuted, lineHeight:1 }}>×</button>
+// En pantallas < 540px se comporta como bottom-sheet (sube desde abajo).
+export const Modal = ({ title, onClose, children }) => {
+  const isSmall = typeof window !== 'undefined' && window.innerWidth < 540
+  return (
+    <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.5)',
+      display:'flex', flexDirection:'column',
+      alignItems: isSmall ? 'stretch' : 'center',
+      justifyContent: isSmall ? 'flex-end' : 'center',
+      zIndex:1000, padding: isSmall ? 0 : 16 }}>
+      <div style={{ background:'#fff',
+        borderRadius: isSmall ? '20px 20px 0 0' : 16,
+        padding: isSmall ? '20px 16px 32px' : 24,
+        width:'100%', maxWidth: isSmall ? '100%' : 460,
+        maxHeight:'90dvh', overflowY:'auto',
+        boxShadow:'0 -4px 40px rgba(0,0,0,0.15)' }}>
+        {isSmall && (
+          <div style={{ width:36, height:4, background:'#d1d5db', borderRadius:99,
+            margin:'0 auto 16px', flexShrink:0 }} />
+        )}
+        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:20 }}>
+          <h3 style={{ margin:0, fontSize:16, fontWeight:700, color:C.text }}>{title}</h3>
+          <button onClick={onClose} style={{ border:'none', background:'none', cursor:'pointer',
+            fontSize:24, color:C.textMuted, lineHeight:1, padding:'0 4px',
+            minHeight:36, minWidth:36, display:'flex', alignItems:'center', justifyContent:'center' }}>
+            ×
+          </button>
+        </div>
+        {children}
       </div>
-      {children}
     </div>
-  </div>
-)
+  )
+}
 
 // ─── INPUT CON LABEL ──────────────────────────────────────────────────────────
 export const Input = ({ label, ...props }) => (

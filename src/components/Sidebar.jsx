@@ -1,4 +1,4 @@
-import { C } from '../constants'
+import { C, codeOf } from '../constants'
 
 // ─── TOPBAR MÓVIL ─────────────────────────────────────────────────────────────
 export const TopBar = ({ title, onMenuToggle, onBack, onLogout }) => (
@@ -37,7 +37,7 @@ export const Sidebar = ({ view, contratoActivo, contratos, onNav, onLogout, isMo
       )}
       <div style={{ position: isMobile ? 'fixed' : 'relative', left:0, top:0, bottom:0,
         width:240, background:C.sidebar, display:'flex', flexDirection:'column',
-        zIndex:999, height: isMobile ? '100vh' : '100%',
+        zIndex:999, height: isMobile ? '100dvh' : '100%',
         boxShadow: isMobile ? '4px 0 20px rgba(0,0,0,0.3)' : 'none' }}>
 
         <div style={{ padding:'20px 16px 14px', borderBottom:'1px solid rgba(255,255,255,0.06)',
@@ -73,7 +73,7 @@ export const Sidebar = ({ view, contratoActivo, contratos, onNav, onLogout, isMo
                 background: contratoActivo===c.id ? 'rgba(255,255,255,0.1)' : 'transparent',
                 color: contratoActivo===c.id ? '#fff' : C.sideText }}>
               <span style={{ width:8, height:8, borderRadius:'50%', background:c.color, flexShrink:0 }} />
-              <span style={{ overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{c.id}</span>
+              <span style={{ overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{codeOf(c)}</span>
             </div>
           ))}
         </nav>

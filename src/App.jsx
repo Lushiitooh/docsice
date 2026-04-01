@@ -85,7 +85,7 @@ export default function App() {
   // ── Cargando estado de auth inicial ──────────────────────────────────────────
   if (authLoading) return (
     <div style={{ display:'flex', alignItems:'center', justifyContent:'center',
-      height:'100vh', fontSize:14, color:'#64748b', fontFamily:"'Inter',system-ui,sans-serif" }}>
+      height:'100dvh', fontSize:14, color:'#64748b', fontFamily:"'Inter',system-ui,sans-serif" }}>
       Cargando...
     </div>
   )
@@ -118,7 +118,7 @@ export default function App() {
 
   return (
     <div style={{ display:'flex', flexDirection:isMobile?'column':'row',
-      height:'100vh', fontFamily:"'Inter',system-ui,sans-serif",
+      height:'100dvh', fontFamily:"'Inter',system-ui,sans-serif",
       background:'#f0f2f5', overflow:'hidden' }}>
 
       {isMobile && (
