@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { C, codeOf } from '../constants'
 import { Btn, Modal, Input, ProgressBar } from '../components/ui'
+import { ModalAuditoria } from '../components/ModalAuditoria'
 import {
   getTrabajadores, getDocTipos, getDocsCargadosPorContrato, getTrabajadoresDesvinculados,
   addDocTipo, toggleDocTipo,
@@ -26,6 +27,7 @@ export const ContratoView = ({ contrato, onSelectTrabajador, isMobile, uid, isAd
   const [trabEditar, setTrabEditar]               = useState({ id:'', rut:'', nombres:'', apellidos:'', cargo:'' })
   const [desvinculados, setDesvinculados]         = useState([])
   const [mostrarDesvinculados, setMostrarDesvinculados] = useState(false)
+  const [modalAuditoria, setModalAuditoria]       = useState(false)
 
   const cargar = useCallback(async () => {
     setLoading(true)
@@ -114,6 +116,7 @@ export const ContratoView = ({ contrato, onSelectTrabajador, isMobile, uid, isAd
           <Btn variant="ghost" size="sm" onClick={() => setModalImport(true)}>📥 CSV</Btn>
           <Btn variant="ghost" size="sm" onClick={() => setModalNuevoTrab(true)}>+ Trabajador</Btn>
           <Btn size="sm" onClick={() => setModalNuevoDoc(true)}>+ Doc adicional</Btn>
+          <Btn variant="ghost" size="sm" onClick={() => setModalAuditoria(true)}>📦 Auditoría</Btn>
         </div>
       </div>
 
@@ -370,6 +373,16 @@ export const ContratoView = ({ contrato, onSelectTrabajador, isMobile, uid, isAd
             </div>
           )}
         </div>
+      )}
+
+      {modalAuditoria && (
+        <ModalAuditoria
+          contrato={contrato}
+          docTipos={docTipos}
+          trabajadores={trabajadores}
+          docsCargados={docsCargados}
+          onClose={() => setModalAuditoria(false)}
+        />
       )}
     </div>
   )

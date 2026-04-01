@@ -40,3 +40,30 @@ export const ADMIN_EMAIL = 'lasepulveda@sice.com'
 // Los contratos del seed antiguo usaban el ID de Firestore como código.
 // Esta función garantiza compatibilidad hacia atrás.
 export const codeOf = (c) => c?.codigoInterno || c?.id || ''
+
+// ─── SLUG PARA NOMBRES DE ARCHIVO ────────────────────────────────────────────
+// Convierte un nombre de doc tipo a un slug usado en la convención de nombres.
+// Ej: "Curso Trabajo en Altura ACHS" → "curso-trabajo-en-altura-achs"
+export const slugify = (str = '') =>
+  str.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase().trim()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '')
+
+// ─── REGLAS DE VIGENCIA AUTOMÁTICA ───────────────────────────────────────────
+// Calcula la fecha de vencimiento automáticamente según el nombre del doc.
+// Recibe la fecha base (Date) extraída del nombre de archivo.
+// Retorna una fecha ISO 'YYYY-MM-DD' o null si no aplica automáticamente.
+export const calcularVencimientoAuto = (nombre = '', fechaBase) => {
+  if (!fechaBase) return null
+  const n = nombre.toLowerCase()
+  const base = new Date(fechaBase)
+  if (isNaN(base.getTime())) return null
+
+  // Cursos ACHS → vigencia 2 años
+  if (n.includes('achs') || n.includes('curso achs') || n.includes('capacitacion achs')) {
+    base.setFullYear(base.getFullYear() + 2)
+    return base.toISOString().slice(0, 10)
+  }
+  return null  // otros → usuario debe ingresar fecha manualmente
+}

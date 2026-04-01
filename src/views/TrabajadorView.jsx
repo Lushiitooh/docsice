@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { C, codeOf } from '../constants'
 import { Btn, Modal, Input, Badge, ProgressBar } from '../components/ui'
+import { ModalCargaMasiva } from '../components/ModalCargaMasiva'
 import {
   getDocTipos, getDocTiposIndividuales, getDocsCargados,
   subirDocumento, eliminarDocumento,
@@ -20,6 +21,7 @@ export const TrabajadorView = ({ trabajador, contrato, onBack, isMobile, uid }) 
   const [modalDocIndiv, setModalDocIndiv]             = useState(false)
   const [nuevoDocIndivNombre, setNuevoDocIndivNombre] = useState('')
   const [nuevoDocIndivTipo, setNuevoDocIndivTipo]     = useState('con_vencimiento')
+  const [modalCargaMasiva, setModalCargaMasiva]       = useState(false)
 
   const cargar = useCallback(async () => {
     const [dt, dtIndiv, dc] = await Promise.all([
@@ -190,7 +192,8 @@ export const TrabajadorView = ({ trabajador, contrato, onBack, isMobile, uid }) 
 
       {!isMobile && <div style={{ marginBottom:16 }}><ProgressBar pct={pct} /></div>}
 
-      <div style={{ display:'flex', justifyContent:'flex-end', marginBottom:10 }}>
+      <div style={{ display:'flex', justifyContent:'flex-end', gap:8, marginBottom:10 }}>
+        <Btn size="sm" variant="ghost" onClick={() => setModalCargaMasiva(true)}>📂 Carga masiva</Btn>
         <Btn size="sm" variant="ghost" onClick={() => setModalDocIndiv(true)}>+ Doc. individual</Btn>
       </div>
 
@@ -238,6 +241,18 @@ export const TrabajadorView = ({ trabajador, contrato, onBack, isMobile, uid }) 
             <Btn onClick={crearDocIndividual}>Agregar</Btn>
           </div>
         </Modal>
+      )}
+
+      {modalCargaMasiva && (
+        <ModalCargaMasiva
+          trabajador={trabajador}
+          contrato={contrato}
+          docTipos={[...docTipos, ...docTiposIndiv]}
+          docsCargados={docsCargados}
+          uid={uid}
+          onClose={() => setModalCargaMasiva(false)}
+          onDone={cargar}
+        />
       )}
     </div>
   )
